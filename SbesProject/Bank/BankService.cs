@@ -28,17 +28,11 @@ namespace Bank
 
                 Console.WriteLine("Registrovan je novi korisnik " + username + " sa PIN kodom: " + pin + ".");
 
-                string cmd = "/c makecert -sv " + username + ".pvk -iv MainCA.pvk -n \"CN=" + username + "\" -pe -ic MainCA.cer " + username + ".cer -sr localmachine -ss My -sky exchange";
+                string cmd = "/c makecert -sv " + username + ".pvk -iv RootCA.pvk -n \"CN=" + username + "\" -pe -ic RootCA.cer " + username + ".cer -sr localmachine -ss My -sky exchange";
                 System.Diagnostics.Process.Start("cmd.exe", cmd).WaitForExit();
 
                 string cmd2 = "/c pvk2pfx.exe /pvk " + username + ".pvk /pi " + pin + " /spc " + username + ".cer /pfx " + username + ".pfx";
                 System.Diagnostics.Process.Start("cmd.exe", cmd2).WaitForExit();
-
-                string cmd3 = "/c makecert -sv " + username + "_sign" + ".pvk -iv MainCA.pvk -n \"CN=" + username + "_sign" + "\" -pe -ic MainCA.cer " + username + "_sign" + ".cer -sr localmachine -ss My -sky signature";
-                System.Diagnostics.Process.Start("cmd.exe", cmd3).WaitForExit();
-
-                string cmd4 = "/c pvk2pfx.exe /pvk " + username + "_sign" + ".pvk /pi " + pin + " /spc " + username + "_sign" + ".cer /pfx " + username + "_sign" + ".pfx";
-                System.Diagnostics.Process.Start("cmd.exe", cmd4).WaitForExit();
 
                 byte[] textData = System.Text.Encoding.UTF8.GetBytes(pin);
                 SHA256Managed sha256 = new SHA256Managed();
