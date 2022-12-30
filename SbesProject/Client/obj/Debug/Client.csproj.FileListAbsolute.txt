@@ -9,3 +9,14 @@ C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Cli
 C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Client.csproj.CopyComplete
 C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Client.exe
 C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Client.pdb
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Client\bin\Debug\Client.exe.config
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Client\bin\Debug\Client.exe
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Client\bin\Debug\Client.pdb
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Client\bin\Debug\BankContracts.dll
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Client\bin\Debug\BankContracts.pdb
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Client.csproj.AssemblyReference.cache
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Client.csproj.SuggestedBindingRedirects.cache
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Client.csproj.CoreCompileInputs.cache
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Client.csproj.CopyComplete
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Client.exe
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Client.pdb

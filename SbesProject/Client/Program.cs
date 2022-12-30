@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Security.Principal;
 using System.ServiceModel;
+using System.ServiceModel.Channels;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -22,9 +25,9 @@ namespace Client
             EndpointAddress endpointAddress = new EndpointAddress(new Uri(address));
 
             WCFClient proxyWcf = new WCFClient(binding, endpointAddress);
-            
 
             Console.ReadLine();
         }
+
     }
 }

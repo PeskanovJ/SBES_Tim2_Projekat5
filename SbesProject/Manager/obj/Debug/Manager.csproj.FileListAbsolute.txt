@@ -1,0 +1,15 @@
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Manager\bin\Debug\Manager.dll
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Manager\bin\Debug\Manager.pdb
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Manager\obj\Debug\Manager.csproj.AssemblyReference.cache
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Manager\obj\Debug\Manager.csproj.CoreCompileInputs.cache
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Manager\obj\Debug\Manager.dll
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Manager\obj\Debug\Manager.pdb
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Manager\bin\Debug\BankContracts.dll
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Manager\bin\Debug\Newtonsoft.Json.Bson.dll
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Manager\bin\Debug\Newtonsoft.Json.dll
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Manager\bin\Debug\BankContracts.pdb
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Manager\bin\Debug\Newtonsoft.Json.pdb
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Manager\bin\Debug\Newtonsoft.Json.xml
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Manager\bin\Debug\Newtonsoft.Json.Bson.pdb
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Manager\bin\Debug\Newtonsoft.Json.Bson.xml
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Manager\obj\Debug\Manager.csproj.CopyComplete

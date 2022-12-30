@@ -4,3 +4,9 @@ C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\BankContracts\obj\De
 C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\BankContracts\obj\Debug\BankContracts.csproj.CoreCompileInputs.cache
 C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\BankContracts\obj\Debug\BankContracts.dll
 C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\BankContracts\obj\Debug\BankContracts.pdb
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\BankContracts\bin\Debug\BankContracts.dll
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\BankContracts\bin\Debug\BankContracts.pdb
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\BankContracts\obj\Debug\BankContracts.csproj.AssemblyReference.cache
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\BankContracts\obj\Debug\BankContracts.csproj.CoreCompileInputs.cache
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\BankContracts\obj\Debug\BankContracts.dll
+C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\BankContracts\obj\Debug\BankContracts.pdb
