@@ -1,0 +1,11 @@
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Client\bin\Debug\Client.exe.config
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Client\bin\Debug\Client.exe
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Client\bin\Debug\Client.pdb
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Client\bin\Debug\BankContracts.dll
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Client\bin\Debug\BankContracts.pdb
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Client.csproj.AssemblyReference.cache
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Client.csproj.SuggestedBindingRedirects.cache
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Client.csproj.CoreCompileInputs.cache
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Client.csproj.CopyComplete
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Client.exe
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Client\obj\Debug\Client.pdb

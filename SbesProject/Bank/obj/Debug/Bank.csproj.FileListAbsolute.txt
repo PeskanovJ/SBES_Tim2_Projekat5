@@ -1,0 +1,11 @@
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\bin\Debug\Bank.exe.config
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\bin\Debug\Bank.exe
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\bin\Debug\Bank.pdb
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\bin\Debug\BankContracts.dll
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\bin\Debug\BankContracts.pdb
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\obj\Debug\Bank.csproj.AssemblyReference.cache
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\obj\Debug\Bank.csproj.SuggestedBindingRedirects.cache
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\obj\Debug\Bank.csproj.CoreCompileInputs.cache
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\obj\Debug\Bank.csproj.CopyComplete
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\obj\Debug\Bank.exe
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\obj\Debug\Bank.pdb

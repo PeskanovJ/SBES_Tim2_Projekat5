@@ -1,0 +1,6 @@
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\BankContracts\bin\Debug\BankContracts.dll
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\BankContracts\bin\Debug\BankContracts.pdb
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\BankContracts\obj\Debug\BankContracts.csproj.AssemblyReference.cache
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\BankContracts\obj\Debug\BankContracts.csproj.CoreCompileInputs.cache
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\BankContracts\obj\Debug\BankContracts.dll
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\BankContracts\obj\Debug\BankContracts.pdb
