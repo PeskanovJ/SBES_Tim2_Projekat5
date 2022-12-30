@@ -25,3 +25,8 @@ C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Bank\bin\D
 C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Bank\bin\Debug\Manager.pdb
 C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Bank\bin\Debug\Newtonsoft.Json.pdb
 C:\Users\bojana\Desktop\sbes-projekat\SBES_Tim2_Projekat5\SbesProject\Bank\bin\Debug\Newtonsoft.Json.xml
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\bin\Debug\Manager.dll
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\bin\Debug\Newtonsoft.Json.dll
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\bin\Debug\Manager.pdb
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\bin\Debug\Newtonsoft.Json.pdb
+C:\Users\aleksandra\Desktop\SBES_Tim2_Projekat5\SbesProject\Bank\bin\Debug\Newtonsoft.Json.xml

@@ -30,7 +30,7 @@ namespace Manager
             string file;
             List<User> users;
 
-            string path = "..\\..\\klijenti.json";
+            string path = "..\\..\\users.json";
 
             using (StreamReader r = new StreamReader(path))
             {

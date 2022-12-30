@@ -1,9 +1,13 @@
 ﻿using BankContracts;
+using Manager;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
+using System.Security.Principal;
 using System.ServiceModel;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Client
@@ -18,7 +22,20 @@ namespace Client
 
         public string Registration()
         {
-            return factory.Registration();
+            string pin = factory.Registration();
+
+            if (pin == null)
+            {
+                Console.WriteLine("Registration failed. Try again!");
+            }
+            else
+            {
+                Console.WriteLine("Certificate installation. Please wait...");
+                Thread.Sleep(5000);
+                Console.WriteLine("Successful registration! Your PIN code is: " + pin);
+            }
+
+            return pin;
         }
     }
 }

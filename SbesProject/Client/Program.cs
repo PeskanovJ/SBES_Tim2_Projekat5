@@ -26,7 +26,54 @@ namespace Client
 
             WCFClient proxyWcf = new WCFClient(binding, endpointAddress);
 
+            string answer;
+            do
+            {
+                Console.WriteLine("Do you want to registrate? y/n");
+                answer = Console.ReadLine();
+
+                if (answer.ToLower() == "y")
+                {
+                    if (proxyWcf.Registration() == null)
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        UserInterface();
+                    }
+                }
+                else if (answer.ToLower() == "n")
+                {
+                    Console.WriteLine("You rejected registration. Program is shutting down!");
+                    Console.ReadLine();
+                    return;
+                }
+                else
+                {
+                    Console.WriteLine("Invalid input!");
+                }
+            } while (answer.ToLower() != "y" && answer.ToLower() != "n");
+
             Console.ReadLine();
+        }
+
+        public static void UserInterface()
+        {
+            string option;
+
+            do
+            {
+                Console.WriteLine("Choose an option: ");
+                Console.WriteLine("\t1. Payment");
+                Console.WriteLine("\t2. Payout");
+                Console.WriteLine("\t3. Change PIN code");
+                Console.WriteLine("\t4. Renew certificate");
+                Console.WriteLine("\t5. The end");
+                Console.Write("Your option: ");
+                option = Console.ReadLine();
+            }
+            while (option != "5");
         }
 
     }

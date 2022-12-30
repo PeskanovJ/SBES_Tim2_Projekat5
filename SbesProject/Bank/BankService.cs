@@ -26,7 +26,7 @@ namespace Bank
                 string pin = Math.Abs(Guid.NewGuid().GetHashCode()).ToString();
                 pin = pin.Substring(0, 4);
 
-                Console.WriteLine("Registrovan je novi korisnik " + username + " sa PIN kodom: " + pin + ".");
+                Console.WriteLine(username + "registered with pin code:" + pin + ".");
 
                 string cmd = "/c makecert -sv " + username + ".pvk -iv RootCA.pvk -n \"CN=" + username + "\" -pe -ic RootCA.cer " + username + ".cer -sr localmachine -ss My -sky exchange";
                 System.Diagnostics.Process.Start("cmd.exe", cmd).WaitForExit();
@@ -46,7 +46,7 @@ namespace Bank
             }
             catch (Exception e)
             {
-                Console.WriteLine("Neuspesna registracija!" + e.StackTrace);
+                Console.WriteLine("Registration failed!" + e.StackTrace);
                 return null;
             }
         }
