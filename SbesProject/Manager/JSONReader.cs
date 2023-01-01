@@ -32,18 +32,34 @@ namespace Manager
 
             string path = "..\\..\\users.json";
 
-            using (StreamReader r = new StreamReader(path))
+            if (File.Exists(path))
             {
-                string fileTemp = r.ReadToEnd();
-                users = JsonConvert.DeserializeObject<List<User>>(fileTemp);
-                foreach (User u in users)
+                using (StreamReader r = new StreamReader(path))
                 {
-                    if (u.Username == user.Username)
+                    string fileTemp = r.ReadToEnd();
+                    users = JsonConvert.DeserializeObject<List<User>>(fileTemp);
+                    if (users != null)
                     {
-                        users.Remove(u);
-                        break;
+                        foreach (User u in users)
+                        {
+                            if (u.Username == user.Username)
+                            {
+                                users.Remove(u);
+                                break;
+                            }
+                        }
                     }
+                    else
+                    {
+                        users = new List<User>();
+                    }
+                    users.Add(user);
+                    file = JsonConvert.SerializeObject(users);
                 }
+            }
+            else
+            {
+                users=new List<User>();
                 users.Add(user);
                 file = JsonConvert.SerializeObject(users);
             }
