@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
 using System.ServiceModel;
+using System.ServiceModel.Security;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,8 +16,18 @@ namespace Client
     public class WCFClient : ChannelFactory<IBankService>, IBankService, IDisposable
     {
         IBankService factory;
-        public WCFClient(NetTcpBinding binding, EndpointAddress address) : base(binding, address) 
+        public WCFClient(NetTcpBinding binding, EndpointAddress address, bool wcf) : base(binding, address) 
         {
+            if (!wcf)
+            {
+                string cltCertCN = Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
+
+                this.Credentials.ServiceCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.Custom;
+                this.Credentials.ServiceCertificate.Authentication.CustomCertificateValidator = new ClientCertValidator();
+                this.Credentials.ServiceCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
+                this.Credentials.ClientCertificate.Certificate = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, cltCertCN);
+            }
+
             factory = this.CreateChannel();
         }
 
@@ -36,6 +47,11 @@ namespace Client
             }
 
             return pin;
+        }
+
+        public bool CheckIfRegistered()
+        {
+            return factory.CheckIfRegistered();
         }
     }
 }

@@ -12,5 +12,8 @@ namespace BankContracts
     {
         [OperationContract]
         string Registration();
+
+        [OperationContract]
+        bool CheckIfRegistered();
     }
 }

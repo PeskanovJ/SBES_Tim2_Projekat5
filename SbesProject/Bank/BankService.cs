@@ -14,6 +14,26 @@ namespace Bank
 {
     public class BankService : IBankService
     {
+        public bool CheckIfRegistered()
+        {
+            IIdentity identity = Thread.CurrentPrincipal.Identity;
+            WindowsIdentity windowsIdentity = identity as WindowsIdentity;
+
+            string korisnickoIme = Formatter.ParseName(windowsIdentity.Name);
+
+            List<User> usersList = JSONReader.ReadUsers();
+
+            foreach (User u in usersList)
+            {
+                if (u.Username == korisnickoIme)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public string Registration()
         {
             IIdentity identity = Thread.CurrentPrincipal.Identity;
@@ -26,7 +46,7 @@ namespace Bank
                 string pin = Math.Abs(Guid.NewGuid().GetHashCode()).ToString();
                 pin = pin.Substring(0, 4);
 
-                Console.WriteLine(username + "registered with pin code:" + pin + ".");
+                Console.WriteLine(username + " registered with pin code:" + pin + ".");
 
                 string cmd = "/c makecert -sv " + username + ".pvk -iv RootCA.pvk -n \"CN=" + username + "\" -pe -ic RootCA.cer " + username + ".cer -sr localmachine -ss My -sky exchange";
                 System.Diagnostics.Process.Start("cmd.exe", cmd).WaitForExit();

@@ -1,7 +1,9 @@
-﻿using System;
+﻿using Manager;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
 using System.ServiceModel;
 using System.ServiceModel.Channels;
@@ -10,8 +12,13 @@ using System.Threading.Tasks;
 
 namespace Client
 {
-    internal class Program
+    public class Program
     {
+        public static string address2 = "net.tcp://localhost:9998/BankaServis";
+        public static NetTcpBinding binding2 = new NetTcpBinding();
+        public static string srvCertCN = "bank";
+        public static X509Certificate2 srvCert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, srvCertCN);
+
         static void Main(string[] args)
         {
             NetTcpBinding binding = new NetTcpBinding();
@@ -22,15 +29,26 @@ namespace Client
             binding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
             binding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
 
+            binding2.Security.Transport.ClientCredentialType = TcpClientCredentialType.Certificate;
+
             EndpointAddress endpointAddress = new EndpointAddress(new Uri(address));
 
-            WCFClient proxyWcf = new WCFClient(binding, endpointAddress);
+            WCFClient proxyWcf = new WCFClient(binding, endpointAddress, true);
+            WCFClient CertificateProxy = null;
 
-            string answer;
-            do
+            if (proxyWcf.CheckIfRegistered())
             {
+                EndpointAddress endpointAddress2 = new EndpointAddress(new Uri(address2), new X509CertificateEndpointIdentity(srvCert));
+                CertificateProxy = new WCFClient(binding2, endpointAddress2, false);
+
+                UserInterface(CertificateProxy, proxyWcf);
+
+            }
+            else
+            {
+
                 Console.WriteLine("Do you want to registrate? y/n");
-                answer = Console.ReadLine();
+                string answer = Console.ReadLine();
 
                 if (answer.ToLower() == "y")
                 {
@@ -40,12 +58,15 @@ namespace Client
                     }
                     else
                     {
-                        UserInterface();
+                        EndpointAddress endpointAddress2 = new EndpointAddress(new Uri(address2), new X509CertificateEndpointIdentity(srvCert));
+                        CertificateProxy = new WCFClient(binding2, endpointAddress2, false);
+
+                        UserInterface(CertificateProxy, proxyWcf);
                     }
                 }
                 else if (answer.ToLower() == "n")
                 {
-                    Console.WriteLine("You rejected registration. Program is shutting down!");
+                    Console.WriteLine("You rejected registration. Program is shutting down!\nPress any key to exit");
                     Console.ReadLine();
                     return;
                 }
@@ -53,12 +74,13 @@ namespace Client
                 {
                     Console.WriteLine("Invalid input!");
                 }
-            } while (answer.ToLower() != "y" && answer.ToLower() != "n");
+            }
 
+            Console.WriteLine("Connection terminated pres any key to exit");
             Console.ReadLine();
         }
 
-        public static void UserInterface()
+        public static void UserInterface(WCFClient CertificateProxy, WCFClient proxyWcf)
         {
             string option;
 
@@ -74,6 +96,8 @@ namespace Client
                 option = Console.ReadLine();
             }
             while (option != "5");
+
+
         }
 
     }

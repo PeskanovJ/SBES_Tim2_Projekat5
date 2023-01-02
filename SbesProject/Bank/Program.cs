@@ -23,6 +23,7 @@ namespace Bank
             host.AddServiceEndpoint(typeof(IBankService), binding, address);
 
             host.Open();
+            Console.WriteLine("Server started waiting for client connection...");
             Console.ReadLine();
         }
     }
