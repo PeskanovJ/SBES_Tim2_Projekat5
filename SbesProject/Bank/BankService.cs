@@ -22,6 +22,8 @@ namespace Bank
             string korisnickoIme = Formatter.ParseName(windowsIdentity.Name);
 
             List<User> usersList = JSONReader.ReadUsers();
+            if(usersList==null)
+                return false;
 
             foreach (User u in usersList)
             {
