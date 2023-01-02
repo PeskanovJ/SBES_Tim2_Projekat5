@@ -17,13 +17,23 @@ namespace Manager
 
             List<User> users;
 
-            using (StreamReader r = new StreamReader(path))
+            if (File.Exists(path))
             {
-                string file = r.ReadToEnd();
-                users = JsonConvert.DeserializeObject<List<User>>(file);
+                using (StreamReader r = new StreamReader(path))
+                {
+                    string file = r.ReadToEnd();
+                    users = JsonConvert.DeserializeObject<List<User>>(file);
 
-                return users;
+                    return users;
+                }
             }
+            else
+            {
+                users = null;
+            }
+
+            return users;
+           
         }
         public static User SaveUser(User user)
         {
