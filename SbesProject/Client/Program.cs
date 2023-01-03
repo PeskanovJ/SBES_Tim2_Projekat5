@@ -14,22 +14,22 @@ namespace Client
 {
     public class Program
     {
-        public static string address2 = "net.tcp://localhost:9998/BankaServis";
-        public static NetTcpBinding binding2 = new NetTcpBinding();
-        public static string srvCertCN = "bank";
-        public static X509Certificate2 srvCert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, srvCertCN);
-
         static void Main(string[] args)
         {
+            string srvCertCN = "bank";
+            X509Certificate2 srvCert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, srvCertCN);
+
             NetTcpBinding binding = new NetTcpBinding();
 
             string address = "net.tcp://localhost:9999/BankService";
+            string addressTransaction = "net.tcp://localhost:9999/TransactionService";
 
             binding.Security.Mode = SecurityMode.Transport;
             binding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
             binding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
 
-            binding2.Security.Transport.ClientCredentialType = TcpClientCredentialType.Certificate;
+            NetTcpBinding bindingTransaction = new NetTcpBinding();
+            bindingTransaction.Security.Transport.ClientCredentialType = TcpClientCredentialType.Certificate;
 
             EndpointAddress endpointAddress = new EndpointAddress(new Uri(address));
 
@@ -38,8 +38,10 @@ namespace Client
 
             if (proxyWcf.CheckIfRegistered())
             {
-                EndpointAddress endpointAddress2 = new EndpointAddress(new Uri(address2), new X509CertificateEndpointIdentity(srvCert));
-                CertificateProxy = new WCFClient(binding2, endpointAddress2, false);
+                EndpointAddress endpointAddressTransaction = new EndpointAddress(new Uri(addressTransaction), new X509CertificateEndpointIdentity(srvCert));
+                CertificateProxy = new WCFClient(bindingTransaction, endpointAddressTransaction, false);
+
+                CertificateProxy.TestCommunication(); //provera da li je uspesna autentifikacija preko sertifikata
 
                 UserInterface(CertificateProxy, proxyWcf);
 
@@ -58,8 +60,10 @@ namespace Client
                     }
                     else
                     {
-                        EndpointAddress endpointAddress2 = new EndpointAddress(new Uri(address2), new X509CertificateEndpointIdentity(srvCert));
-                        CertificateProxy = new WCFClient(binding2, endpointAddress2, false);
+                        EndpointAddress endpointAddressTransaction = new EndpointAddress(new Uri(addressTransaction), new X509CertificateEndpointIdentity(srvCert));
+                        CertificateProxy = new WCFClient(bindingTransaction, endpointAddressTransaction, false);
+
+                        CertificateProxy.TestCommunication(); //provera da li je uspesna autentifikacija preko sertifikata
 
                         UserInterface(CertificateProxy, proxyWcf);
                     }
@@ -83,7 +87,6 @@ namespace Client
         public static void UserInterface(WCFClient CertificateProxy, WCFClient proxyWcf)
         {
             string option;
-
             do
             {
                 Console.WriteLine("Choose an option: ");
@@ -94,10 +97,10 @@ namespace Client
                 Console.WriteLine("\t5. The end");
                 Console.Write("Your option: ");
                 option = Console.ReadLine();
+
+                //switch
             }
             while (option != "5");
-
-
         }
 
     }

@@ -15,5 +15,8 @@ namespace BankContracts
 
         [OperationContract]
         bool CheckIfRegistered();
+
+        [OperationContract]
+        void TestCommunication();
     }
 }

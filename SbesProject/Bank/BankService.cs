@@ -22,18 +22,24 @@ namespace Bank
             string korisnickoIme = Formatter.ParseName(windowsIdentity.Name);
 
             List<User> usersList = JSONReader.ReadUsers();
-            if(usersList==null)
-                return false;
+           
 
-            foreach (User u in usersList)
+            if(usersList != null)
             {
-                if (u.Username == korisnickoIme)
+                foreach (User u in usersList)
                 {
-                    return true;
+                    if (u.Username == korisnickoIme)
+                    {
+                        return true;
+                    }
                 }
             }
 
             return false;
+        }
+        public void TestCommunication()
+        {
+            Console.WriteLine("Communication established.");
         }
 
         public string Registration()

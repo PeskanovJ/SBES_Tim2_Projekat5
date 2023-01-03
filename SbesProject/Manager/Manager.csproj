@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CertManager.cs" />
+    <Compile Include="DigitalSignature.cs" />
     <Compile Include="Formatter.cs" />
     <Compile Include="ClientCertValidation.cs" />
     <Compile Include="JSONReader.cs" />
