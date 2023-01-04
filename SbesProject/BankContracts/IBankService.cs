@@ -20,7 +20,7 @@ namespace BankContracts
         void TestCommunication();
 
         [OperationContract]
-        void Deposit(string message, byte[] sign);
+        byte[] Deposit(byte[] encryptedMessage);
 
         [OperationContract]
         void Withdraw(string message, byte[] sign);
