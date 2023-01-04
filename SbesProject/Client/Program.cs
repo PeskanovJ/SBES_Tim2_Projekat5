@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Runtime.Serialization;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
@@ -87,6 +88,7 @@ namespace Client
         public static void UserInterface(WCFClient CertificateProxy, WCFClient proxyWcf)
         {
             string option;
+            string signCertCN = Manager.Formatter.ParseName(WindowsIdentity.GetCurrent().Name) + "_sign";
             do
             {
                 Console.WriteLine("Choose an option: ");
@@ -99,6 +101,75 @@ namespace Client
                 option = Console.ReadLine();
 
                 //switch
+                switch (option)
+                {
+                    case "1":
+                        {
+                            Console.Write("Enter pin: ");
+                            string pin = Console.ReadLine();
+
+                            Console.Write("Enter amount of money to deposit: ");
+                            string amount = Console.ReadLine();
+
+                            string depositRequest = amount + '_' + pin; //obicna poruka koja se salje (to treba izmeniti da se kriptuje)
+
+                            X509Certificate2 certificateSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, signCertCN);
+                            byte[] signature = DigitalSignature.Create(depositRequest, HashAlgorithm.SHA1, certificateSign);
+
+
+                            CertificateProxy.Deposit(depositRequest, signature);
+                            break;
+                        }
+                            
+                    case "2":
+                        {
+                            Console.Write("Enter pin: ");
+                            string pin = Console.ReadLine();
+
+                            Console.Write("Enter amount of money to withdraw: ");
+                            string amount = Console.ReadLine();
+
+                            string withdrawRequest = amount + '_' + pin; //obicna poruka koja se salje (to treba izmeniti da se kriptuje)
+
+                            X509Certificate2 certificateSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, signCertCN);
+                            byte[] signature = DigitalSignature.Create(withdrawRequest, HashAlgorithm.SHA1, certificateSign);
+
+
+                            CertificateProxy.Withdraw(withdrawRequest, signature);
+                            break;
+                        }
+                           
+                    case "3":
+                        {
+                            Console.Write("Enter pin: ");
+                            string pin = Console.ReadLine();
+
+                            string newPin;
+                            int temp;
+
+                            while (true)
+                            {
+                                Console.Write("Enter new pin: ");
+                                newPin = Console.ReadLine();
+
+                                if (newPin.Length == 4 && Int32.TryParse(newPin, out temp))
+                                {
+                                    break;
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Pin code must contain 4 digits!");
+                                }
+                            }
+                            string pinRequest = newPin + '_' + pin; //obicna poruka koja se salje (to treba izmeniti da se kriptuje)
+                            X509Certificate2 certificateSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, signCertCN);
+                            byte[] signature = DigitalSignature.Create(pinRequest, HashAlgorithm.SHA1, certificateSign);
+                           
+                            CertificateProxy.ChangePin(pinRequest, signature);
+                            break;
+                        }
+                            
+                }
             }
             while (option != "5");
         }

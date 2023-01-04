@@ -67,5 +67,44 @@ namespace Client
         {
             return factory.CheckIfRegistered();
         }
+
+        public void Deposit(string message, byte[] sign)
+        {
+            try
+            {
+                factory.Deposit(message, sign);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("[TestCommunication] ERROR = {0}", e.Message);
+            }
+        }
+
+        public void Withdraw(string message, byte[] sign)
+        {
+            try
+            {
+                factory.Withdraw(message, sign);
+
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("[TestCommunication] ERROR = {0}", e.Message);
+            }
+        }
+
+        public void ChangePin(string message, byte[] sign)
+        {
+            try
+            {
+                factory.ChangePin(message, sign);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("[TestCommunication] ERROR = {0}", e.Message);
+            }
+        }
+
     }
 }

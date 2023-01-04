@@ -18,5 +18,14 @@ namespace BankContracts
 
         [OperationContract]
         void TestCommunication();
+
+        [OperationContract]
+        void Deposit(string message, byte[] sign);
+
+        [OperationContract]
+        void Withdraw(string message, byte[] sign);
+
+        [OperationContract]
+        void ChangePin(string message, byte[] sign);
     }
 }
