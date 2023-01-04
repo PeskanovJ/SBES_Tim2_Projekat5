@@ -26,9 +26,23 @@ namespace Client
                 this.Credentials.ServiceCertificate.Authentication.CustomCertificateValidator = new ClientCertValidator();
                 this.Credentials.ServiceCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
                 this.Credentials.ClientCertificate.Certificate = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, cltCertCN);
-            }
 
+            }
             factory = this.CreateChannel();
+            
+            
+        }
+
+        public void TestCommunication()
+        {
+            try
+            {
+                factory.TestCommunication();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("[TestCommunication] ERROR = {0}", e.Message);
+            }
         }
 
         public string Registration()
@@ -41,8 +55,8 @@ namespace Client
             }
             else
             {
-                Console.WriteLine("Certificate installation. Please wait...");
-                Thread.Sleep(5000);
+                Console.WriteLine("Please install your certificates in mmc and press enter to continue.");
+                Console.ReadLine();
                 Console.WriteLine("Successful registration! Your PIN code is: " + pin);
             }
 
@@ -53,5 +67,44 @@ namespace Client
         {
             return factory.CheckIfRegistered();
         }
+
+        public void Deposit(string message, byte[] sign)
+        {
+            try
+            {
+                factory.Deposit(message, sign);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("[TestCommunication] ERROR = {0}", e.Message);
+            }
+        }
+
+        public void Withdraw(string message, byte[] sign)
+        {
+            try
+            {
+                factory.Withdraw(message, sign);
+
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("[TestCommunication] ERROR = {0}", e.Message);
+            }
+        }
+
+        public void ChangePin(string message, byte[] sign)
+        {
+            try
+            {
+                factory.ChangePin(message, sign);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("[TestCommunication] ERROR = {0}", e.Message);
+            }
+        }
+
     }
 }

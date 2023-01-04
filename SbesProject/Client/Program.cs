@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Runtime.Serialization;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
@@ -14,22 +15,22 @@ namespace Client
 {
     public class Program
     {
-        public static string address2 = "net.tcp://localhost:9998/BankaServis";
-        public static NetTcpBinding binding2 = new NetTcpBinding();
-        public static string srvCertCN = "bank";
-        public static X509Certificate2 srvCert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, srvCertCN);
-
         static void Main(string[] args)
         {
+            string srvCertCN = "bank";
+            X509Certificate2 srvCert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, srvCertCN);
+
             NetTcpBinding binding = new NetTcpBinding();
 
             string address = "net.tcp://localhost:9999/BankService";
+            string addressTransaction = "net.tcp://localhost:9999/TransactionService";
 
             binding.Security.Mode = SecurityMode.Transport;
             binding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
             binding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
 
-            binding2.Security.Transport.ClientCredentialType = TcpClientCredentialType.Certificate;
+            NetTcpBinding bindingTransaction = new NetTcpBinding();
+            bindingTransaction.Security.Transport.ClientCredentialType = TcpClientCredentialType.Certificate;
 
             EndpointAddress endpointAddress = new EndpointAddress(new Uri(address));
 
@@ -38,8 +39,10 @@ namespace Client
 
             if (proxyWcf.CheckIfRegistered())
             {
-                EndpointAddress endpointAddress2 = new EndpointAddress(new Uri(address2), new X509CertificateEndpointIdentity(srvCert));
-                CertificateProxy = new WCFClient(binding2, endpointAddress2, false);
+                EndpointAddress endpointAddressTransaction = new EndpointAddress(new Uri(addressTransaction), new X509CertificateEndpointIdentity(srvCert));
+                CertificateProxy = new WCFClient(bindingTransaction, endpointAddressTransaction, false);
+
+                CertificateProxy.TestCommunication(); //provera da li je uspesna autentifikacija preko sertifikata
 
                 UserInterface(CertificateProxy, proxyWcf);
 
@@ -58,8 +61,10 @@ namespace Client
                     }
                     else
                     {
-                        EndpointAddress endpointAddress2 = new EndpointAddress(new Uri(address2), new X509CertificateEndpointIdentity(srvCert));
-                        CertificateProxy = new WCFClient(binding2, endpointAddress2, false);
+                        EndpointAddress endpointAddressTransaction = new EndpointAddress(new Uri(addressTransaction), new X509CertificateEndpointIdentity(srvCert));
+                        CertificateProxy = new WCFClient(bindingTransaction, endpointAddressTransaction, false);
+
+                        CertificateProxy.TestCommunication(); //provera da li je uspesna autentifikacija preko sertifikata
 
                         UserInterface(CertificateProxy, proxyWcf);
                     }
@@ -83,7 +88,7 @@ namespace Client
         public static void UserInterface(WCFClient CertificateProxy, WCFClient proxyWcf)
         {
             string option;
-
+            string signCertCN = Manager.Formatter.ParseName(WindowsIdentity.GetCurrent().Name) + "_sign";
             do
             {
                 Console.WriteLine("Choose an option: ");
@@ -94,10 +99,79 @@ namespace Client
                 Console.WriteLine("\t5. The end");
                 Console.Write("Your option: ");
                 option = Console.ReadLine();
+
+                //switch
+                switch (option)
+                {
+                    case "1":
+                        {
+                            Console.Write("Enter pin: ");
+                            string pin = Console.ReadLine();
+
+                            Console.Write("Enter amount of money to deposit: ");
+                            string amount = Console.ReadLine();
+
+                            string depositRequest = amount + '_' + pin; //obicna poruka koja se salje (to treba izmeniti da se kriptuje)
+
+                            X509Certificate2 certificateSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, signCertCN);
+                            byte[] signature = DigitalSignature.Create(depositRequest, HashAlgorithm.SHA1, certificateSign);
+
+
+                            CertificateProxy.Deposit(depositRequest, signature);
+                            break;
+                        }
+                            
+                    case "2":
+                        {
+                            Console.Write("Enter pin: ");
+                            string pin = Console.ReadLine();
+
+                            Console.Write("Enter amount of money to withdraw: ");
+                            string amount = Console.ReadLine();
+
+                            string withdrawRequest = amount + '_' + pin; //obicna poruka koja se salje (to treba izmeniti da se kriptuje)
+
+                            X509Certificate2 certificateSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, signCertCN);
+                            byte[] signature = DigitalSignature.Create(withdrawRequest, HashAlgorithm.SHA1, certificateSign);
+
+
+                            CertificateProxy.Withdraw(withdrawRequest, signature);
+                            break;
+                        }
+                           
+                    case "3":
+                        {
+                            Console.Write("Enter pin: ");
+                            string pin = Console.ReadLine();
+
+                            string newPin;
+                            int temp;
+
+                            while (true)
+                            {
+                                Console.Write("Enter new pin: ");
+                                newPin = Console.ReadLine();
+
+                                if (newPin.Length == 4 && Int32.TryParse(newPin, out temp))
+                                {
+                                    break;
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Pin code must contain 4 digits!");
+                                }
+                            }
+                            string pinRequest = newPin + '_' + pin; //obicna poruka koja se salje (to treba izmeniti da se kriptuje)
+                            X509Certificate2 certificateSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, signCertCN);
+                            byte[] signature = DigitalSignature.Create(pinRequest, HashAlgorithm.SHA1, certificateSign);
+                           
+                            CertificateProxy.ChangePin(pinRequest, signature);
+                            break;
+                        }
+                            
+                }
             }
             while (option != "5");
-
-
         }
 
     }
