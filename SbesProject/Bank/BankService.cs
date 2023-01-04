@@ -76,6 +76,10 @@ namespace Bank
 
                 User u = new User(username, System.Text.Encoding.UTF8.GetString(pinHelp));
 
+                string secretKey = SecretKey.GenerateKey();
+               
+                SecretKey.StoreKey(secretKey, username);
+
                 JSONReader.SaveUser(u);
 
                 return pin;
