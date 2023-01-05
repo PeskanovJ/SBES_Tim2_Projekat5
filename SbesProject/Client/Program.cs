@@ -111,16 +111,29 @@ namespace Client
                             Console.Write("Enter amount of money to deposit: ");
                             string amount = Console.ReadLine();
 
-                            string depositRequest = amount + '_' + pin; //obicna poruka koja se salje (to treba izmeniti da se kriptuje)
+                            string depositRequest = amount + '_' + pin;
 
                             X509Certificate2 certificateSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, signCertCN);
                             byte[] signature = DigitalSignature.Create(depositRequest, HashAlgorithm.SHA1, certificateSign);
 
+                            byte[] depositRequestBytes = System.Text.Encoding.UTF8.GetBytes(depositRequest);
 
-                            CertificateProxy.Deposit(depositRequest, signature);
-                            break;
-                        }
+                            byte[] message = new byte[256 + depositRequestBytes.Length];
+
+                            Buffer.BlockCopy(signature, 0, message, 0, 256);
+                            Buffer.BlockCopy(depositRequestBytes, 0, message, 256, depositRequestBytes.Length);
+
+                            string username = Manager.Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
+
+                            string secretKey = SecretKey.LoadKey(username);
+
+                            byte[] encryptedMessage = _3DES_Symm_Algorithm.Encrypt(message, secretKey);
+
+                            CertificateProxy.Deposit(encryptedMessage);
                             
+                        }
+                        break;
+
                     case "2":
                         {
                             Console.Write("Enter pin: ");
