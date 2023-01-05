@@ -119,17 +119,39 @@ namespace Client
             }
         }
 
-        public void Withdraw(string message, byte[] sign)
+        public byte[] Withdraw(byte[] encryptedMessage)
         {
             try
             {
-                factory.Withdraw(message, sign);
+                byte[] response = factory.Deposit(encryptedMessage);
 
+                string clientName = Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
+                X509Certificate2 cert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, "bank_sign");
+                string secretKey = SecretKey.LoadKey(clientName);
 
+                byte[] decrypted = _3DES_Symm_Algorithm.Decrypt(response, secretKey);
+                byte[] signature = new byte[256];
+                byte[] messageBytes = new byte[decrypted.Length - 256];
+                Buffer.BlockCopy(decrypted, 0, signature, 0, 256);
+                Buffer.BlockCopy(decrypted, 256, messageBytes, 0, decrypted.Length - 256);
+
+                string message = Encoding.UTF8.GetString(messageBytes);
+
+                if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, signature, cert))
+                {
+                    Console.WriteLine(message);
+                    return messageBytes;
+                }
+                else
+                {
+                    Console.WriteLine($"Bank sign is invalid.");
+                    return null;
+                }
             }
             catch (Exception e)
             {
-                Console.WriteLine("[TestCommunication] ERROR = {0}", e.Message);
+                Console.WriteLine("[Withdraw] ERROR = {0}", e.Message);
+                return null;
             }
         }
 

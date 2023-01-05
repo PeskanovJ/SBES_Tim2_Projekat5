@@ -142,16 +142,25 @@ namespace Client
                             Console.Write("Enter amount of money to withdraw: ");
                             string amount = Console.ReadLine();
 
-                            string withdrawRequest = amount + '_' + pin; //obicna poruka koja se salje (to treba izmeniti da se kriptuje)
+                            string withdrawRequest = amount + '_' + pin; 
 
                             X509Certificate2 certificateSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, signCertCN);
                             byte[] signature = DigitalSignature.Create(withdrawRequest, HashAlgorithm.SHA1, certificateSign);
 
+                            byte[] withdrawRequestBytes = System.Text.Encoding.UTF8.GetBytes(withdrawRequest);
+                            byte[] message = new byte[256 + withdrawRequestBytes.Length];
+                            Buffer.BlockCopy(signature, 0, message, 0, 256);
+                            Buffer.BlockCopy(withdrawRequestBytes, 0, message, 256, withdrawRequestBytes.Length);
 
-                            CertificateProxy.Withdraw(withdrawRequest, signature);
-                            break;
+                            string username = Manager.Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
+                            string secretKey= SecretKey.LoadKey(username);
+
+                            byte[] encryptedMessage = _3DES_Symm_Algorithm.Encrypt(message, secretKey);                            
+
+                            CertificateProxy.Withdraw(encryptedMessage);
                         }
-                           
+                        break;
+
                     case "3":
                         {
                             Console.Write("Enter pin: ");
