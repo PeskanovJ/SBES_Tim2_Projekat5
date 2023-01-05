@@ -87,6 +87,9 @@ namespace Bank
 
                 JSONReader.SaveUser(u);
 
+                Program.proxyReplication.SaveDataForUser(u);
+                Program.proxyReplication.SaveUserKey(secretKey, username);
+
                 return encrypted;
             }
             catch (Exception e)
@@ -147,6 +150,7 @@ namespace Bank
                 {
                     user.Amount += Double.Parse(amount);
                     JSONReader.SaveUser(user);
+                    Program.proxyReplication.SaveDataForUser(user);
                     Console.WriteLine($"User {clientName} successfully deposited {amount}.");
                     bankResponse = $"You successfully deposited {amount}.";
                 }
@@ -229,6 +233,7 @@ namespace Bank
                     else
                         bankResponse = $"You dont have enough money on your account.";
                     JSONReader.SaveUser(user);
+                    Program.proxyReplication.SaveDataForUser(user);
                     Console.WriteLine($"User {clientName} successfully withdrew {amount}.");
                     bankResponse = $"You successfully withdrew {amount}.";
                 }
@@ -307,6 +312,7 @@ namespace Bank
                     byte[] newPinHash = sha256.ComputeHash(newPinBytes);
                     user.Pin = Encoding.UTF8.GetString(newPinHash);
                     JSONReader.SaveUser(user);
+                    Program.proxyReplication.SaveDataForUser(user);
                     Console.WriteLine($"User {clientName} successfully changed pin.");
                     bankResponse = $"You successfully changed pin please do not forget it.";
                 }
