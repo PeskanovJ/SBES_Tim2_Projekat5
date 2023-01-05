@@ -70,19 +70,24 @@ namespace Bank
                 System.Diagnostics.Process.Start("cmd.exe", cmdSign2).WaitForExit();
 
 
-                byte[] textData = System.Text.Encoding.UTF8.GetBytes(pin);
+                byte[] textData = Encoding.UTF8.GetBytes(pin);
                 SHA256Managed sha256 = new SHA256Managed();
                 byte[] pinHelp = sha256.ComputeHash(textData);
 
-                User u = new User(username, System.Text.Encoding.UTF8.GetString(pinHelp));
+                User u = new User(username, Encoding.UTF8.GetString(pinHelp));
 
                 string secretKey = SecretKey.GenerateKey();
                
                 SecretKey.StoreKey(secretKey, username);
 
+                string message = secretKey + pin;
+                X509Certificate2 certClient = CertManager.GetCertificateFromFile(username);
+
+                string encrypted = Manager.RSA.Encrypt(message, certClient.GetRSAPublicKey().ToXmlString(false));
+
                 JSONReader.SaveUser(u);
 
-                return pin;
+                return encrypted;
             }
             catch (Exception e)
             {
@@ -91,101 +96,242 @@ namespace Bank
             }
         }
 
-        public void Deposit(string message, byte[] sign)
+        public byte[] Deposit(byte[] encryptedMessage)
         {
             string srvCertCN = Formatter.ParseName(WindowsIdentity.GetCurrent().Name) + "_sign";
             X509Certificate2 bankCertSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, srvCertCN);
-            byte[] signature;
 
-            string clienName = Formatter.ParseName(ServiceSecurityContext.Current.PrimaryIdentity.Name);
-            string clientNameSign = clienName + "_sign";
+            string clientName = Formatter.ParseName(ServiceSecurityContext.Current.PrimaryIdentity.Name);
+            string clientNameSign = clientName + "_sign";
             X509Certificate2 certificate = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople,
                 StoreLocation.LocalMachine, clientNameSign);
 
-            Console.WriteLine(message);
-            /// Verify signature using SHA1 hash algorithm
-            if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, sign, certificate))
+            List<User> users = JSONReader.ReadUsers();
+            User user = null;
+
+            foreach (User u in users)
+            {
+                if (u.Username == clientName)
+                {
+                    user = u;
+                    break;
+                }
+            }
+
+            string secretKey = SecretKey.LoadKey(clientName);
+            byte[] decrypted = _3DES_Symm_Algorithm.Decrypt(encryptedMessage, secretKey);
+
+            byte[] signature = new byte[256];
+            byte[] messageBytes = new byte[decrypted.Length - 256];
+
+            Buffer.BlockCopy(decrypted, 0, signature, 0, 256);
+            Buffer.BlockCopy(decrypted, 256, messageBytes, 0, decrypted.Length - 256);
+
+            string message = Encoding.UTF8.GetString(messageBytes);
+
+            string bankResponse = "";
+
+            /// Verify signature using SHA256 hash algorithm
+            if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, signature, certificate))
             {
                 Console.WriteLine("Sign is valid");
-                //proveriti pin kod
-                string bankResponse = $"User {clienName} successfully deposited money";
-                //string bankResponse = $"Pin is invalid. User {clienName} can't deposite money";
-                signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
 
+                string amount = message.Split('_')[0];
+                string pin = message.Split('_')[1];
+
+                byte[] pinBytes = Encoding.UTF8.GetBytes(pin);
+                SHA256Managed sha256 = new SHA256Managed();
+                byte[] pinHash = sha256.ComputeHash(pinBytes);
+
+                if (user.Pin == Encoding.UTF8.GetString(pinHash))
+                {
+                    user.Amount += Double.Parse(amount);
+                    JSONReader.SaveUser(user);
+                    Console.WriteLine($"User {clientName} successfully deposited {amount}.");
+                    bankResponse = $"You successfully deposited {amount}.";
+                }
+                else
+                {
+                    Console.WriteLine($"User {clientName} failed to deposit {amount}.");
+                    bankResponse = "Failed to deposit money.";
+                }
             }
             else
             {
                 //vratiti poruku da nije moguce uraditi transakciju jer sertifikat nije validan
                 Console.WriteLine("Sign is invalid");
-                string bankResponse = $"Sign is invalid. User {clienName} can't deposit money";
-
-                //Ovaj potpis kriptovati i vratiti ga kao povratnu vrednost metode
-                signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
+                bankResponse = $"Sign is invalid. User {clientName} can't deposit money.";
             }
+
+            signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
+
+            byte[] bankResponseBytes = Encoding.UTF8.GetBytes(bankResponse);
+
+            byte[] responseMessage = new byte[256 + bankResponseBytes.Length];
+
+            Buffer.BlockCopy(signature, 0, responseMessage, 0, 256);
+            Buffer.BlockCopy(bankResponseBytes, 0, responseMessage, 256, bankResponseBytes.Length);
+
+            byte[] encryptedResponse = _3DES_Symm_Algorithm.Encrypt(responseMessage, secretKey);
+
+            return encryptedResponse;
         }
 
-        public void Withdraw(string message, byte[] sign)
+        public byte[] Withdraw(byte[] encryptedMessage)
         {
             string srvCertCN = Formatter.ParseName(WindowsIdentity.GetCurrent().Name) + "_sign";
             X509Certificate2 bankCertSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, srvCertCN);
-            byte[] signature;
 
-            string clienName = Formatter.ParseName(ServiceSecurityContext.Current.PrimaryIdentity.Name);
-            string clientNameSign = clienName + "_sign";
+            string clientName = Formatter.ParseName(ServiceSecurityContext.Current.PrimaryIdentity.Name);
+            string clientNameSign = clientName + "_sign";
             X509Certificate2 certificate = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople,
                 StoreLocation.LocalMachine, clientNameSign);
 
-            Console.WriteLine(message);
+            List<User> users = JSONReader.ReadUsers();
+            User user = null;
+            foreach(User u in users)
+            {
+                if (u.Username == clientName)
+                {
+                    user = u;
+                    break;
+                }
+            }
+
+            string secretKey = SecretKey.LoadKey(clientName);
+            byte[] decrypted = _3DES_Symm_Algorithm.Decrypt(encryptedMessage, secretKey);
+            
+            byte[] signature = new byte[256];
+            byte[] messageBytes = new byte[decrypted.Length - 256];
+            Buffer.BlockCopy(decrypted, 0, signature, 0, 256);
+            Buffer.BlockCopy(decrypted, 256, messageBytes, 0, decrypted.Length - 256);
+
+            string message=Encoding.UTF8.GetString(messageBytes);
+
+            string bankResponse = "";
+
             /// Verify signature using SHA1 hash algorithm
-            if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, sign, certificate))
+            if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, signature, certificate))
             {
                 Console.WriteLine("Sign is valid");
-                string bankResponse = $"User {clienName} successfully withdrew money";
-                //string bankResponse = $"Pin is invalid. User {clienName} can't withdraw money";
 
-                //Ovaj potpis kriptovati i vratiti ga kao povratnu vrednost metode
-                signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
+                string amount = message.Split('_')[0];
+                string pin = message.Split('_')[1];
+
+                byte[] pinBytes = Encoding.UTF8.GetBytes(pin);
+                SHA256Managed sha256 = new SHA256Managed();
+                byte[] pinHash = sha256.ComputeHash(pinBytes);
+
+                if (user.Pin == Encoding.UTF8.GetString(pinHash))
+                {
+                    if(user.Amount>Double.Parse(amount))
+                        user.Amount -= Double.Parse(amount);
+                    else
+                        bankResponse = $"You dont have enough money on your account.";
+                    JSONReader.SaveUser(user);
+                    Console.WriteLine($"User {clientName} successfully withdrew {amount}.");
+                    bankResponse = $"You successfully withdrew {amount}.";
+                }
+                else
+                {
+                    Console.WriteLine($"User {clientName} failed to withdraw {amount}.");
+                    bankResponse = "Failed to withdraw money.";
+                }
+            }
+            else
+            {
+                Console.WriteLine("Sign is invalid"); 
+                bankResponse = $"Sign is invalid. User {clientName} can't withdraw money";
+            }
+
+            signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
+
+            byte[] bankResponseBytes = Encoding.UTF8.GetBytes(bankResponse);
+            byte[] responseMessage = new byte[256 + bankResponseBytes.Length];
+            Buffer.BlockCopy(signature, 0, responseMessage, 0, 256);
+            Buffer.BlockCopy(bankResponseBytes, 0, responseMessage, 256, bankResponseBytes.Length);
+
+            byte[] encryptedResponse = _3DES_Symm_Algorithm.Encrypt(responseMessage, secretKey);
+
+            return encryptedResponse;
+        }
+
+        public byte[] ChangePin(byte[] encryptedMessage)
+        {
+            string srvCertCN = Formatter.ParseName(WindowsIdentity.GetCurrent().Name) + "_sign";
+            X509Certificate2 bankCertSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, srvCertCN);
+
+            string clientName = Formatter.ParseName(ServiceSecurityContext.Current.PrimaryIdentity.Name);
+            string clientNameSign = clientName + "_sign";
+            X509Certificate2 certificate = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople,
+                StoreLocation.LocalMachine, clientNameSign);
+
+            List<User> users = JSONReader.ReadUsers();
+            User user = null;
+            foreach (User u in users)
+            {
+                if (u.Username == clientName)
+                {
+                    user = u;
+                    break;
+                }
+            }
+
+            string secretKey = SecretKey.LoadKey(clientName);
+            byte[] decrypted = _3DES_Symm_Algorithm.Decrypt(encryptedMessage, secretKey);
+
+            byte[] signature = new byte[256];
+            byte[] messageBytes = new byte[decrypted.Length - 256];
+            Buffer.BlockCopy(decrypted, 0, signature, 0, 256);
+            Buffer.BlockCopy(decrypted, 256, messageBytes, 0, decrypted.Length - 256);
+
+            string message = Encoding.UTF8.GetString(messageBytes);
+
+            string bankResponse = "";
+
+            /// Verify signature using SHA1 hash algorithm
+            if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, signature, certificate))
+            {
+                Console.WriteLine("Sign is valid");
+
+                string newPin = message.Split('_')[0];
+                string pin = message.Split('_')[1];
+
+                byte[] pinBytes = Encoding.UTF8.GetBytes(pin);
+                SHA256Managed sha256 = new SHA256Managed();
+                byte[] pinHash = sha256.ComputeHash(pinBytes);
+
+                if (user.Pin == Encoding.UTF8.GetString(pinHash))
+                {
+                    byte[] newPinBytes = Encoding.UTF8.GetBytes(newPin);
+                    byte[] newPinHash = sha256.ComputeHash(newPinBytes);
+                    user.Pin = Encoding.UTF8.GetString(newPinHash);
+                    JSONReader.SaveUser(user);
+                    Console.WriteLine($"User {clientName} successfully changed pin.");
+                    bankResponse = $"You successfully changed pin please do not forget it.";
+                }
+                else
+                {
+                    Console.WriteLine($"User {clientName} failed to change pin.");
+                    bankResponse = "Failed to change pin.";
+                }
             }
             else
             {
                 Console.WriteLine("Sign is invalid");
-                string bankResponse = $"Sign is invalid. User {clienName} can't withdraw money";
-                //Ovaj potpis kriptovati i vratiti ga kao povratnu vrednost metode
-                signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
-            }
-        }
-
-        public void ChangePin(string message, byte[] sign)
-        {
-            string srvCertCN = Formatter.ParseName(WindowsIdentity.GetCurrent().Name) + "_sign";
-            X509Certificate2 bankCertSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, srvCertCN);
-            byte[] signature;
-
-            string clienName = Formatter.ParseName(ServiceSecurityContext.Current.PrimaryIdentity.Name);
-            string clientNameSign = clienName + "_sign";
-            X509Certificate2 certificate = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople,
-                StoreLocation.LocalMachine, clientNameSign);
-
-
-            Console.WriteLine(message);
-            /// Verify signature using SHA1 hash algorithm
-            if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, sign, certificate))
-            {
-                Console.WriteLine("Sign is valid");
-                string bankResponse = $"User {clienName} successfully changed pin";
-                //string bankResponse = $"Pin is invalid. User {clienName} can't change pin";
-                //Ovaj potpis kriptovati i vratiti ga kao povratnu vrednost metode
-                signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
-            }
-            else
-            {
-                Console.WriteLine("Sign is invalid");
-                string bankResponse = $"Sign is invalid. User {clienName} can't change pin";
-                //Ovaj potpis kriptovati i vratiti ga kao povratnu vrednost metode
-                signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
+                bankResponse = $"Sign is invalid. User {clientName} can't change pin";
             }
 
-            //return signature;
+            signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
+
+            byte[] bankResponseBytes = Encoding.UTF8.GetBytes(bankResponse);
+            byte[] responseMessage = new byte[256 + bankResponseBytes.Length];
+            Buffer.BlockCopy(signature, 0, responseMessage, 0, 256);
+            Buffer.BlockCopy(bankResponseBytes, 0, responseMessage, 256, bankResponseBytes.Length);
+
+            byte[] encryptedResponse = _3DES_Symm_Algorithm.Encrypt(responseMessage, secretKey);
+
+            return encryptedResponse;
         }
     }
 }

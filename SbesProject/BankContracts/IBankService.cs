@@ -20,12 +20,12 @@ namespace BankContracts
         void TestCommunication();
 
         [OperationContract]
-        void Deposit(string message, byte[] sign);
+        byte[] Deposit(byte[] encryptedMessage);
 
         [OperationContract]
-        void Withdraw(string message, byte[] sign);
+        byte[] Withdraw(byte[] encryptedMessage);
 
         [OperationContract]
-        void ChangePin(string message, byte[] sign);
+        byte[] ChangePin(byte[] encryptedMessage);
     }
 }
