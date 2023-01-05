@@ -14,6 +14,7 @@ namespace Bank
 {
     internal class Program
     {
+        public static BankProxyReplication proxyReplication = null;
         static void Main(string[] args)
         {
             //Main host
@@ -36,6 +37,17 @@ namespace Bank
             hostTransaction.Credentials.ClientCertificate.Authentication.CustomCertificateValidator = new ServiceCertValidation();
             hostTransaction.Credentials.ClientCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
             hostTransaction.Credentials.ServiceCertificate.Certificate = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, srvCertCN);
+
+            //Replication proxy
+            NetTcpBinding bindingReprication = new NetTcpBinding();
+            string addressReplication = "net.tcp://localhost:9999/ReplicatorService";
+
+            bindingReprication.Security.Mode = SecurityMode.Transport;
+            bindingReprication.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
+            bindingReprication.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
+
+            EndpointAddress endpointAddress = new EndpointAddress(new Uri(addressReplication));
+            proxyReplication = new BankProxyReplication(binding, endpointAddress);
 
             try
             {
