@@ -166,30 +166,27 @@ namespace Client
                             Console.Write("Enter pin: ");
                             string pin = Console.ReadLine();
 
-                            string newPin;
-                            int temp;
+                            Console.Write("Enter new pin: ");
+                            string newPin = Console.ReadLine();
 
-                            while (true)
-                            {
-                                Console.Write("Enter new pin: ");
-                                newPin = Console.ReadLine();
+                            string withdrawRequest = newPin + '_' + pin;
 
-                                if (newPin.Length == 4 && Int32.TryParse(newPin, out temp))
-                                {
-                                    break;
-                                }
-                                else
-                                {
-                                    Console.WriteLine("Pin code must contain 4 digits!");
-                                }
-                            }
-                            string pinRequest = newPin + '_' + pin; //obicna poruka koja se salje (to treba izmeniti da se kriptuje)
                             X509Certificate2 certificateSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, signCertCN);
-                            byte[] signature = DigitalSignature.Create(pinRequest, HashAlgorithm.SHA1, certificateSign);
-                           
-                            CertificateProxy.ChangePin(pinRequest, signature);
-                            break;
+                            byte[] signature = DigitalSignature.Create(withdrawRequest, HashAlgorithm.SHA1, certificateSign);
+
+                            byte[] withdrawRequestBytes = System.Text.Encoding.UTF8.GetBytes(withdrawRequest);
+                            byte[] message = new byte[256 + withdrawRequestBytes.Length];
+                            Buffer.BlockCopy(signature, 0, message, 0, 256);
+                            Buffer.BlockCopy(withdrawRequestBytes, 0, message, 256, withdrawRequestBytes.Length);
+
+                            string username = Manager.Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
+                            string secretKey = SecretKey.LoadKey(username);
+
+                            byte[] encryptedMessage = _3DES_Symm_Algorithm.Encrypt(message, secretKey);
+
+                            CertificateProxy.ChangePin(encryptedMessage);
                         }
+                        break;
                             
                 }
             }

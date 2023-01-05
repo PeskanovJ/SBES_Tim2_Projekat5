@@ -26,6 +26,6 @@ namespace BankContracts
         byte[] Withdraw(byte[] encryptedMessage);
 
         [OperationContract]
-        void ChangePin(string message, byte[] sign);
+        byte[] ChangePin(byte[] encryptedMessage);
     }
 }
