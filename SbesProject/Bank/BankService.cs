@@ -89,6 +89,15 @@ namespace Bank
                 string encrypted = Manager.RSA.Encrypt(message, certClient.GetRSAPublicKey().ToXmlString(false));
 
                 JSONReader.SaveUser(u);
+                //audit za registraciju success
+                try
+                {
+                    Audit.RegistrationCertSuccess(username);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
 
                 Program.proxyReplication.SaveDataForUser(u);
                 Program.proxyReplication.SaveUserKey(secretKey, username);
@@ -98,6 +107,15 @@ namespace Bank
             catch (Exception e)
             {
                 Console.WriteLine("Registration failed!" + e.StackTrace);
+                //audit za registraciju failed
+                try
+                {
+                    Audit.RegistrationCertFailure(username, e.StackTrace);
+                }
+                catch (Exception ee)
+                {
+                    Console.WriteLine(ee.Message);
+                }
                 return null;
             }
         }
@@ -156,11 +174,31 @@ namespace Bank
                     Program.proxyReplication.SaveDataForUser(user);
                     Console.WriteLine($"User {clientName} successfully deposited {amount}.");
                     bankResponse = $"You successfully deposited {amount}.";
+
+                    //audit za uplatu success
+                    try
+                    {
+                        Audit.PaymentSuccess(clientName, amount.ToString());
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                    }
                 }
                 else
                 {
                     Console.WriteLine($"User {clientName} failed to deposit {amount}.");
                     bankResponse = "Failed to deposit money.";
+
+                    //audit za uplatu failed
+                    try
+                    {
+                        Audit.PaymentFailure(clientName, "Failed to deposit money, wrong pin");
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                    }
                 }
             }
             else
@@ -168,6 +206,16 @@ namespace Bank
                 //vratiti poruku da nije moguce uraditi transakciju jer sertifikat nije validan
                 Console.WriteLine("Sign is invalid");
                 bankResponse = $"Sign is invalid. User {clientName} can't deposit money.";
+
+                //audit za uplatu failed
+                try
+                {
+                    Audit.PaymentFailure(clientName, "Failed to deposit money, sign is invalid");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
             }
 
             signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
@@ -239,17 +287,47 @@ namespace Bank
                     Program.proxyReplication.SaveDataForUser(user);
                     Console.WriteLine($"User {clientName} successfully withdrew {amount}.");
                     bankResponse = $"You successfully withdrew {amount}.";
+
+                    //audit za isplatu success
+                    try
+                    {
+                        Audit.PayoutSuccess(clientName, amount.ToString());
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                    }
                 }
                 else
                 {
                     Console.WriteLine($"User {clientName} failed to withdraw {amount}.");
                     bankResponse = "Failed to withdraw money.";
+
+                    //audit za isplatu failed
+                    try
+                    {
+                        Audit.PaymentFailure(clientName, "Failed to withdraw money, wrong pin");
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                    }
                 }
             }
             else
             {
                 Console.WriteLine("Sign is invalid"); 
                 bankResponse = $"Sign is invalid. User {clientName} can't withdraw money";
+
+                //audit za uplatu failed
+                try
+                {
+                    Audit.PaymentFailure(clientName, "Failed to withdraw money, sign is invalid");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
             }
 
             signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
@@ -318,17 +396,47 @@ namespace Bank
                     Program.proxyReplication.SaveDataForUser(user);
                     Console.WriteLine($"User {clientName} successfully changed pin.");
                     bankResponse = $"You successfully changed pin please do not forget it.";
+
+                    //audit za promenu pina success
+                    try
+                    {
+                        Audit.ChangePinSuccess(clientName);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                    }
                 }
                 else
                 {
                     Console.WriteLine($"User {clientName} failed to change pin.");
                     bankResponse = "Failed to change pin.";
+
+                    //audit za promenu pina failed
+                    try
+                    {
+                        Audit.ChangePinFailure(clientName, "Failed to change pin, old pin is wrong");
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                    }
                 }
             }
             else
             {
                 Console.WriteLine("Sign is invalid");
                 bankResponse = $"Sign is invalid. User {clientName} can't change pin";
+
+                //audit za promenu pina failed
+                try
+                {
+                    Audit.ChangePinFailure(clientName, "Failed to change pin, sign is invalid");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
             }
 
             signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
