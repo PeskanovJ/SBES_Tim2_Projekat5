@@ -57,7 +57,7 @@ namespace Client
             }
             else
             {
-                Console.WriteLine("Please install your certificates in mmc and press enter to continue.");
+                Console.WriteLine("Certificate installation...");
                 Console.ReadLine();
 
                 string cltCertCN = Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
@@ -191,5 +191,27 @@ namespace Client
             }
         }
 
+        public string RenewCertificate()
+        {
+            string pin = factory.RenewCertificate();
+
+            if(pin == null)
+            {
+                Console.WriteLine("Certificate renew failed. Try again.");
+            }
+            else
+            {
+                Console.WriteLine("Certificate installation...");
+                Console.ReadLine();
+
+                string cltCertCN = Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
+                X509Certificate2 cert = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, cltCertCN);
+                string decryptedPin = RSA.Decrypt(pin, cert.GetRSAPrivateKey().ToXmlString(true));
+
+                Console.WriteLine("Successfully renewed certificate.\nYour new pin code: " + decryptedPin);
+            }
+
+            return pin;
+        }
     }
 }
