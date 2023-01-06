@@ -10,6 +10,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.ServiceModel;
+using System.Diagnostics;
+using System.IO;
+using System.ServiceModel.Channels;
 
 namespace Bank
 {
@@ -332,6 +335,69 @@ namespace Bank
             byte[] encryptedResponse = _3DES_Symm_Algorithm.Encrypt(responseMessage, secretKey);
 
             return encryptedResponse;
+        }
+
+        public string RenewCertificate()
+        {
+            string username = Formatter.ParseName(ServiceSecurityContext.Current.PrimaryIdentity.Name);
+
+            List<User> users = JSONReader.ReadUsers();
+            User user = null;
+
+            foreach (User u in users)
+            {
+                if (u.Username == username)
+                {
+                    user = u;
+                    break;
+                }
+            }
+
+            try
+            { 
+                File.Delete(username + ".pvk");
+                File.Delete(username + "_sign.pvk");
+                File.Delete(username + ".pfx");
+                File.Delete(username + "_sign.pfx");
+                File.Delete(username + ".cer");
+                File.Delete(username + "_sign.cer");
+
+                string pin = Math.Abs(Guid.NewGuid().GetHashCode()).ToString();
+                pin = pin.Substring(0, 4);
+
+                Console.WriteLine("Certificate renewed.New pin: " + pin);
+
+                string cmd1 = "/c makecert -sv " + username + ".pvk -iv RootCA.pvk -n \"CN=" + username + "\" -pe -ic RootCA.cer " + username + ".cer -sr localmachine -ss My -sky exchange";
+                Process.Start("cmd.exe", cmd1).WaitForExit();
+
+                string cmd2 = "/c pvk2pfx.exe /pvk " + username + ".pvk /pi " + pin + " /spc " + username + ".cer /pfx " + username + ".pfx";
+                Process.Start("cmd.exe", cmd2).WaitForExit();
+
+                string cmdSign1 = "/c makecert -sv " + username + "_sign.pvk -iv RootCA.pvk -n \"CN=" + username + "_sign" + "\" -pe -ic RootCA.cer " + username + "_sign.cer -sr localmachine -ss My -sky signature";
+                Process.Start("cmd.exe", cmdSign1).WaitForExit();
+
+                string cmdSign2 = "/c pvk2pfx.exe /pvk " + username + "_sign.pvk /pi " + pin + " /spc " + username + "_sign.cer /pfx " + username + "_sign.pfx";
+                Process.Start("cmd.exe", cmdSign2).WaitForExit();
+
+                
+                byte[] pinBytes = Encoding.UTF8.GetBytes(pin);
+                SHA256Managed sha256 = new SHA256Managed();
+                byte[] pinHash = sha256.ComputeHash(pinBytes);
+
+                user.Pin = Encoding.UTF8.GetString(pinHash);
+                JSONReader.SaveUser(user);
+
+                X509Certificate2 certClient = CertManager.GetCertificateFromFile(username);
+
+                string encrypted = Manager.RSA.Encrypt(pin, certClient.GetRSAPublicKey().ToXmlString(false));
+
+                return encrypted;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Certificate renew failed!" + e.StackTrace);
+                return null;
+            }
         }
     }
 }

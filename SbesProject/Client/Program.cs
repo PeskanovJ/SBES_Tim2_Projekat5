@@ -15,21 +15,21 @@ namespace Client
 {
     public class Program
     {
+        public static string srvCertCN = "bank";
+        public static X509Certificate2 srvCert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, srvCertCN);
+        public static string addressTransaction = "net.tcp://localhost:9999/TransactionService";
+        public static NetTcpBinding bindingTransaction = new NetTcpBinding();
+
         static void Main(string[] args)
         {
-            string srvCertCN = "bank";
-            X509Certificate2 srvCert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, srvCertCN);
-
+            
             NetTcpBinding binding = new NetTcpBinding();
-
             string address = "net.tcp://localhost:9999/BankService";
-            string addressTransaction = "net.tcp://localhost:9999/TransactionService";
-
+            
             binding.Security.Mode = SecurityMode.Transport;
             binding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
             binding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
-
-            NetTcpBinding bindingTransaction = new NetTcpBinding();
+            
             bindingTransaction.Security.Transport.ClientCredentialType = TcpClientCredentialType.Certificate;
 
             EndpointAddress endpointAddress = new EndpointAddress(new Uri(address));
@@ -187,7 +187,18 @@ namespace Client
                             CertificateProxy.ChangePin(encryptedMessage);
                         }
                         break;
-                            
+
+                    case "4":
+                        {
+                            proxyWcf.RenewCertificate();
+
+                            EndpointAddress endpointAddressTransaction = new EndpointAddress(new Uri(addressTransaction), new X509CertificateEndpointIdentity(srvCert));
+                            CertificateProxy = new WCFClient(bindingTransaction, endpointAddressTransaction, false);
+                        }
+                        break;
+
+                    default:
+                        break;
                 }
             }
             while (option != "5");
