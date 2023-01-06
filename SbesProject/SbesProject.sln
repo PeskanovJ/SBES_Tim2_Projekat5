@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Manager", "Manager\Manager.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Replicator", "Replicator\Replicator.csproj", "{3556A1C9-9B39-4236-B15A-419E08B78B67}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BankingAudit", "BankAudit\BankingAudit.csproj", "{4DE43736-3CF8-4A92-A601-14BD2DF68264}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{3556A1C9-9B39-4236-B15A-419E08B78B67}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3556A1C9-9B39-4236-B15A-419E08B78B67}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3556A1C9-9B39-4236-B15A-419E08B78B67}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4DE43736-3CF8-4A92-A601-14BD2DF68264}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4DE43736-3CF8-4A92-A601-14BD2DF68264}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4DE43736-3CF8-4A92-A601-14BD2DF68264}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4DE43736-3CF8-4A92-A601-14BD2DF68264}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

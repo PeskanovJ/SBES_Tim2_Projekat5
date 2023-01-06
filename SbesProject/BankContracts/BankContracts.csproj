@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IBankAudit.cs" />
     <Compile Include="IBankService.cs" />
     <Compile Include="IReplicatorService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
