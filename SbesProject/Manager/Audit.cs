@@ -10,7 +10,7 @@ namespace Manager
     public class Audit : IDisposable
     {
 
-       private static EventLog customLog = null;
+       public static EventLog customLog = null;
        const string SourceName = "Manager.Audit";
        const string LogName = "AuditSBES";
 
@@ -38,9 +38,8 @@ namespace Manager
             {
                 string PaymentSuccess =
                     AuditEvents.PaymentSuccess;
-                string message = String.Format(PaymentSuccess,
-                    userName, amount);
-                customLog.WriteEntry(message);
+                string message = String.Format(PaymentSuccess,userName, amount);
+                customLog.WriteEntry(message,EventLogEntryType.Information,(int)AuditEventTypes.PaymentSuccess);
             }
             else
             {
@@ -57,7 +56,7 @@ namespace Manager
                     AuditEvents.PaymentFailure;
                 string message = String.Format(PaymentFailure,
                     userName, reason);
-                customLog.WriteEntry(message);
+                customLog.WriteEntry(message, EventLogEntryType.FailureAudit, (int)AuditEventTypes.PaymentFailure);
             }
             else
             {
@@ -74,7 +73,7 @@ namespace Manager
                     AuditEvents.PayoutSuccess;
                 string message = String.Format(PayoutSuccess,
                     userName, amount);
-                customLog.WriteEntry(message);
+                customLog.WriteEntry(message, EventLogEntryType.Information, (int)AuditEventTypes.PayoutSuccess);
             }
             else
             {
@@ -91,7 +90,7 @@ namespace Manager
                     AuditEvents.PayoutFailure;
                 string message = String.Format(PayoutFailure,
                     userName, reason);
-                customLog.WriteEntry(message);
+                customLog.WriteEntry(message, EventLogEntryType.FailureAudit, (int)AuditEventTypes.PayoutFailure);
             }
             else
             {
@@ -108,7 +107,7 @@ namespace Manager
                     AuditEvents.ChangePinSuccess;
                 string message = String.Format(ChangePinSuccess,
                     userName);
-                customLog.WriteEntry(message);
+                customLog.WriteEntry(message, EventLogEntryType.Information, (int)AuditEventTypes.ChangePinSuccess);
             }
             else
             {
@@ -125,7 +124,7 @@ namespace Manager
                     AuditEvents.ChangePinFailure;
                 string message = String.Format(ChangePinFailure,
                     userName, reason);
-                customLog.WriteEntry(message);
+                customLog.WriteEntry(message, EventLogEntryType.FailureAudit, (int)AuditEventTypes.ChangePinFailure);
             }
             else
             {
@@ -142,7 +141,7 @@ namespace Manager
                     AuditEvents.RegistrationCertSuccess;
                 string message = String.Format(RegistrationCertSuccess,
                     userName);
-                customLog.WriteEntry(message);
+                customLog.WriteEntry(message, EventLogEntryType.Information, (int)AuditEventTypes.RegistrationCertSuccess);
             }
             else
             {
@@ -159,7 +158,7 @@ namespace Manager
                     AuditEvents.RegistrationCertFailure;
                 string message = String.Format(RegistrationCertFailure,
                     userName, reason);
-                customLog.WriteEntry(message);
+                customLog.WriteEntry(message, EventLogEntryType.FailureAudit, (int)AuditEventTypes.RegistrationCertFailure);
             }
             else
             {
@@ -176,7 +175,7 @@ namespace Manager
                     AuditEvents.RevocationCertSuccess;
                 string message = String.Format(RevocationCertSuccess,
                     userName);
-                customLog.WriteEntry(message);
+                customLog.WriteEntry(message, EventLogEntryType.Information, (int)AuditEventTypes.RevocationCertSuccess);
             }
             else
             {
@@ -193,7 +192,7 @@ namespace Manager
                     AuditEvents.RevocationCertFailure;
                 string message = String.Format(RevocationCertFailure,
                     userName, reason);
-                customLog.WriteEntry(message);
+                customLog.WriteEntry(message, EventLogEntryType.FailureAudit, (int)AuditEventTypes.RevocationCertFailure);
             }
             else
             {
@@ -210,7 +209,7 @@ namespace Manager
                     AuditEvents.RenewalCertSuccess;
                 string message = String.Format(RenewalCertSuccess,
                     userName);
-                customLog.WriteEntry(message);
+                customLog.WriteEntry(message, EventLogEntryType.Information, (int)AuditEventTypes.RenewalCertSuccess);
             }
             else
             {
@@ -227,7 +226,7 @@ namespace Manager
                     AuditEvents.RenewalCertFailure;
                 string message = String.Format(RenewalCertFailure,
                     userName, reason);
-                customLog.WriteEntry(message);
+                customLog.WriteEntry(message, EventLogEntryType.FailureAudit, (int)AuditEventTypes.RenewalCertFailure);
             }
             else
             {
@@ -244,7 +243,7 @@ namespace Manager
                     AuditEvents.RequestTransactionSuccess;
                 string message = String.Format(RequestTransactionSuccess,
                     transactionName);
-                customLog.WriteEntry(message);
+                customLog.WriteEntry(message, EventLogEntryType.Information, (int)AuditEventTypes.RequestTransactionSuccess);
             }
             else
             {
@@ -261,7 +260,7 @@ namespace Manager
                     AuditEvents.RequestTransactionFailure;
                 string message = String.Format(RequestTransactionFailure,
                     userName, reason);
-                customLog.WriteEntry(message);
+                customLog.WriteEntry(message, EventLogEntryType.FailureAudit, (int)AuditEventTypes.RequestTransactionFailure);
             }
             else
             {

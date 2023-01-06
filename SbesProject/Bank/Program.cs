@@ -16,6 +16,7 @@ namespace Bank
     internal class Program
     {
         public static BankProxyReplication proxyReplication = null;
+        public static BankProxyAudit proxyAudit = null;
         static void Main(string[] args)
         {
             //Main host
@@ -50,15 +51,26 @@ namespace Bank
             hostTransaction.Description.Behaviors.Add(newAudit);
 
             //Replication proxy
-            NetTcpBinding bindingReprication = new NetTcpBinding();
-            string addressReplication = "net.tcp://localhost:9999/ReplicatorService";
+            NetTcpBinding bindingReplication = new NetTcpBinding();
+            string addressReplication = "net.tcp://localhost:9997/ReplicatorService";
 
-            bindingReprication.Security.Mode = SecurityMode.Transport;
-            bindingReprication.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
-            bindingReprication.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
+            bindingReplication.Security.Mode = SecurityMode.Transport;
+            bindingReplication.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
+            bindingReplication.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
 
             EndpointAddress endpointAddress = new EndpointAddress(new Uri(addressReplication));
             proxyReplication = new BankProxyReplication(binding, endpointAddress);
+
+            //Audit service
+            NetTcpBinding bindingAudit = new NetTcpBinding();
+            string bankAuditAddress = "net.tcp://localhost:9996/BankingAuditServis";
+
+            bindingAudit.Security.Mode = SecurityMode.Transport;
+            bindingAudit.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
+            bindingAudit.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
+
+            EndpointAddress auditEndpointAddress = new EndpointAddress(new Uri(bankAuditAddress));
+            proxyAudit = new BankProxyAudit(bindingAudit, auditEndpointAddress);
 
             try
             {

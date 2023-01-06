@@ -13,6 +13,7 @@ using System.ServiceModel;
 using System.Diagnostics;
 using System.IO;
 using System.ServiceModel.Channels;
+using System.Configuration;
 
 namespace Bank
 {
@@ -26,9 +27,9 @@ namespace Bank
             string korisnickoIme = Formatter.ParseName(windowsIdentity.Name);
 
             List<User> usersList = JSONReader.ReadUsers();
-           
 
-            if(usersList != null)
+
+            if (usersList != null)
             {
                 foreach (User u in usersList)
                 {
@@ -80,7 +81,7 @@ namespace Bank
                 User u = new User(username, Encoding.UTF8.GetString(pinHelp));
 
                 string secretKey = SecretKey.GenerateKey();
-               
+
                 SecretKey.StoreKey(secretKey, username);
 
                 string message = secretKey + pin;
@@ -244,7 +245,7 @@ namespace Bank
 
             List<User> users = JSONReader.ReadUsers();
             User user = null;
-            foreach(User u in users)
+            foreach (User u in users)
             {
                 if (u.Username == clientName)
                 {
@@ -255,13 +256,13 @@ namespace Bank
 
             string secretKey = SecretKey.LoadKey(clientName);
             byte[] decrypted = _3DES_Symm_Algorithm.Decrypt(encryptedMessage, secretKey);
-            
+
             byte[] signature = new byte[256];
             byte[] messageBytes = new byte[decrypted.Length - 256];
             Buffer.BlockCopy(decrypted, 0, signature, 0, 256);
             Buffer.BlockCopy(decrypted, 256, messageBytes, 0, decrypted.Length - 256);
 
-            string message=Encoding.UTF8.GetString(messageBytes);
+            string message = Encoding.UTF8.GetString(messageBytes);
 
             string bankResponse = "";
 
@@ -279,19 +280,23 @@ namespace Bank
 
                 if (user.Pin == Encoding.UTF8.GetString(pinHash))
                 {
-                    if(user.Amount>Double.Parse(amount))
+                    if (user.Amount > Double.Parse(amount))
+                    {
                         user.Amount -= Double.Parse(amount);
+
+                        JSONReader.SaveUser(user);
+                        Program.proxyReplication.SaveDataForUser(user);
+                        Console.WriteLine($"User {clientName} successfully withdrew {amount}.");
+                        bankResponse = $"You successfully withdrew {amount}.";
+                        
+                        //audit za isplatu success
+                    }
                     else
                         bankResponse = $"You dont have enough money on your account.";
-                    JSONReader.SaveUser(user);
-                    Program.proxyReplication.SaveDataForUser(user);
-                    Console.WriteLine($"User {clientName} successfully withdrew {amount}.");
-                    bankResponse = $"You successfully withdrew {amount}.";
-
-                    //audit za isplatu success
                     try
                     {
                         Audit.PayoutSuccess(clientName, amount.ToString());
+                        Task.Run(() => CheckLogs(clientName));
                     }
                     catch (Exception e)
                     {
@@ -316,7 +321,7 @@ namespace Bank
             }
             else
             {
-                Console.WriteLine("Sign is invalid"); 
+                Console.WriteLine("Sign is invalid");
                 bankResponse = $"Sign is invalid. User {clientName} can't withdraw money";
 
                 //audit za uplatu failed
@@ -468,7 +473,7 @@ namespace Bank
             }
 
             try
-            { 
+            {
                 File.Delete(username + ".pvk");
                 File.Delete(username + "_sign.pvk");
                 File.Delete(username + ".pfx");
@@ -493,7 +498,7 @@ namespace Bank
                 string cmdSign2 = "/c pvk2pfx.exe /pvk " + username + "_sign.pvk /pi " + pin + " /spc " + username + "_sign.cer /pfx " + username + "_sign.pfx";
                 Process.Start("cmd.exe", cmdSign2).WaitForExit();
 
-                
+
                 byte[] pinBytes = Encoding.UTF8.GetBytes(pin);
                 SHA256Managed sha256 = new SHA256Managed();
                 byte[] pinHash = sha256.ComputeHash(pinBytes);
@@ -512,6 +517,52 @@ namespace Bank
             {
                 Console.WriteLine("Certificate renew failed!" + e.StackTrace);
                 return null;
+            }
+        }
+
+        public void CheckLogs(string clientName)
+        {
+            Console.WriteLine("Checking logs");
+            int time = Int32.Parse(ConfigurationManager.AppSettings["Time"]);
+            int numberOfAccesses = Int32.Parse(ConfigurationManager.AppSettings["NumberOfAccesses"]);
+
+            EventLogEntryCollection events = Audit.customLog.Entries;
+            List<EventLogEntry> listEntry = new List<EventLogEntry>();
+
+            foreach (EventLogEntry e in events)
+            {
+                if (e.EventID == (int)AuditEventTypes.PayoutSuccess)
+                {
+                    string user = e.Message.Split(' ')[1].Split(' ')[0];
+
+                    if (user == clientName)
+                    {
+                        listEntry.Add(e);
+                    }
+                }
+            }
+
+            if (listEntry.Count >= numberOfAccesses)
+            {
+                listEntry = listEntry.OrderByDescending(a => a.TimeGenerated).ToList();
+
+                DateTime dt = listEntry[0].TimeGenerated;
+                DateTime dt2 = listEntry[numberOfAccesses - 1].TimeGenerated;
+
+                TimeSpan t = dt.Subtract(dt2);
+                double seconds = t.TotalSeconds;
+
+                List<string> logovi = new List<string>();
+
+                if (time >= seconds)
+                {
+                    for (int i = 0; i < numberOfAccesses; i++)
+                    {
+                        logovi.Add(listEntry[i].Message);
+                    }
+
+                    Program.proxyAudit.AccessLog("banka", clientName, dt, logovi);
+                }
             }
         }
     }
