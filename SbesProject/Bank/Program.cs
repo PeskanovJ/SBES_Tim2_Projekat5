@@ -40,6 +40,11 @@ namespace Bank
             NetTcpBinding bindingTransaction = new NetTcpBinding();
             string addressTransaction = "net.tcp://localhost:9999/TransactionService";
             bindingTransaction.Security.Transport.ClientCredentialType = TcpClientCredentialType.Certificate;
+            bindingTransaction.OpenTimeout = new TimeSpan(0, 10, 0);
+            bindingTransaction.CloseTimeout = new TimeSpan(0, 10, 0);
+            bindingTransaction.SendTimeout = new TimeSpan(0, 10, 0);
+            bindingTransaction.ReceiveTimeout = new TimeSpan(0, 10, 0);
+
             ServiceHost hostTransaction = new ServiceHost(typeof(BankService));
             hostTransaction.AddServiceEndpoint(typeof(IBankService), bindingTransaction, addressTransaction);
             hostTransaction.Credentials.ClientCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.Custom;

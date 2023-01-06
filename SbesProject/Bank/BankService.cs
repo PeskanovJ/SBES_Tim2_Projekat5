@@ -311,7 +311,7 @@ namespace Bank
                     //audit za isplatu failed
                     try
                     {
-                        Audit.PaymentFailure(clientName, "Failed to withdraw money, wrong pin");
+                        Audit.PayoutFailure(clientName, "Failed to withdraw money, wrong pin");
                     }
                     catch (Exception e)
                     {
@@ -327,7 +327,7 @@ namespace Bank
                 //audit za uplatu failed
                 try
                 {
-                    Audit.PaymentFailure(clientName, "Failed to withdraw money, sign is invalid");
+                    Audit.PayoutFailure(clientName, "Failed to withdraw money, sign is invalid");
                 }
                 catch (Exception e)
                 {
@@ -481,6 +481,15 @@ namespace Bank
                 File.Delete(username + ".cer");
                 File.Delete(username + "_sign.cer");
 
+                try
+                {
+                    Audit.RevocationCertSuccess(username);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+
                 string pin = Math.Abs(Guid.NewGuid().GetHashCode()).ToString();
                 pin = pin.Substring(0, 4);
 
@@ -498,6 +507,14 @@ namespace Bank
                 string cmdSign2 = "/c pvk2pfx.exe /pvk " + username + "_sign.pvk /pi " + pin + " /spc " + username + "_sign.cer /pfx " + username + "_sign.pfx";
                 Process.Start("cmd.exe", cmdSign2).WaitForExit();
 
+                try
+                {
+                    Audit.RenewalCertSuccess(username);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
 
                 byte[] pinBytes = Encoding.UTF8.GetBytes(pin);
                 SHA256Managed sha256 = new SHA256Managed();
@@ -516,13 +533,13 @@ namespace Bank
             catch (Exception e)
             {
                 Console.WriteLine("Certificate renew failed!" + e.StackTrace);
+                Audit.RenewalCertFailure(username,e.Message);
                 return null;
             }
         }
 
         public void CheckLogs(string clientName)
         {
-            Console.WriteLine("Checking logs");
             int time = Int32.Parse(ConfigurationManager.AppSettings["Time"]);
             int numberOfAccesses = Int32.Parse(ConfigurationManager.AppSettings["NumberOfAccesses"]);
 
