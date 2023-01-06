@@ -392,6 +392,7 @@ namespace Bank
 
                 user.Pin = Encoding.UTF8.GetString(pinHash);
                 JSONReader.SaveUser(user);
+                Program.proxyReplication.SaveDataForUser(user);
 
                 X509Certificate2 certClient = CertManager.GetCertificateFromFile(username);
 
