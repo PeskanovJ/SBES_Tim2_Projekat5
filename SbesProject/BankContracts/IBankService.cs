@@ -27,5 +27,8 @@ namespace BankContracts
 
         [OperationContract]
         byte[] ChangePin(byte[] encryptedMessage);
+
+        [OperationContract]
+        string RenewCertificate();
     }
 }
