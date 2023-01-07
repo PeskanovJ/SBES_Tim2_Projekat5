@@ -44,17 +44,15 @@ namespace Manager
 			try
 			{
 				fInput.Read(buffer, 0, (int)fInput.Length);
+				fInput.Close();
+				return ASCIIEncoding.ASCII.GetString(buffer);
 			}
 			catch (Exception e)
 			{
 				Console.WriteLine("SecretKeys.LoadKey:: ERROR {0}", e.Message);
-			}
-			finally
-			{
 				fInput.Close();
+				return null;
 			}
-
-			return ASCIIEncoding.ASCII.GetString(buffer);
 		}
 	}
 }

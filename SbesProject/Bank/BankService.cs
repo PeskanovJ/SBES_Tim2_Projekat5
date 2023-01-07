@@ -24,30 +24,22 @@ namespace Bank
             IIdentity identity = Thread.CurrentPrincipal.Identity;
             WindowsIdentity windowsIdentity = identity as WindowsIdentity;
 
-            string korisnickoIme = Formatter.ParseName(windowsIdentity.Name);
+            string username = Formatter.ParseName(windowsIdentity.Name);
 
             List<User> usersList = JSONReader.ReadUsers();
 
-
             if (usersList != null)
             {
-                foreach (User u in usersList)
-                {
-                    if (u.Username == korisnickoIme)
-                    {
-                        return true;
-                    }
-                }
+                User user = usersList.Find(u => u.Username == username);
+
+                if (user != null)
+                    return true;
             }
 
             return false;
         }
-        public void TestCommunication()
-        {
-            Console.WriteLine("Communication established.");
-        }
 
-        public string Registration()
+        public bool Registration(out string encrypted)
         {
             IIdentity identity = Thread.CurrentPrincipal.Identity;
             WindowsIdentity windowsIdentity = identity as WindowsIdentity;
@@ -59,7 +51,7 @@ namespace Bank
                 string pin = Math.Abs(Guid.NewGuid().GetHashCode()).ToString();
                 pin = pin.Substring(0, 4);
 
-                Console.WriteLine(username + " registered with pin code:" + pin + ".");
+                Console.WriteLine("Registered new user: " + username + " with pin code:" + pin + ".");
 
                 string cmd = "/c makecert -sv " + username + ".pvk -iv RootCA.pvk -n \"CN=" + username + "\" -pe -ic RootCA.cer " + username + ".cer -sr localmachine -ss My -sky exchange";
                 System.Diagnostics.Process.Start("cmd.exe", cmd).WaitForExit();
@@ -73,7 +65,6 @@ namespace Bank
                 string cmdSign2 = "/c pvk2pfx.exe /pvk " + username + "_sign.pvk /pi " + pin + " /spc " + username + "_sign.cer /pfx " + username + "_sign.pfx";
                 System.Diagnostics.Process.Start("cmd.exe", cmdSign2).WaitForExit();
 
-
                 byte[] textData = Encoding.UTF8.GetBytes(pin);
                 SHA256Managed sha256 = new SHA256Managed();
                 byte[] pinHelp = sha256.ComputeHash(textData);
@@ -81,399 +72,382 @@ namespace Bank
                 User u = new User(username, Encoding.UTF8.GetString(pinHelp));
 
                 string secretKey = SecretKey.GenerateKey();
-
                 SecretKey.StoreKey(secretKey, username);
 
                 string message = secretKey + pin;
                 X509Certificate2 certClient = CertManager.GetCertificateFromFile(username);
 
-                string encrypted = Manager.RSA.Encrypt(message, certClient.GetRSAPublicKey().ToXmlString(false));
+                encrypted = Manager.RSA.Encrypt(message, certClient.GetRSAPublicKey().ToXmlString(false));
 
                 JSONReader.SaveUser(u);
-                //audit za registraciju success
                 try
                 {
-                    Audit.RegistrationCertSuccess(username);
+                    Audit.RegistrationCertSuccess(username); //Try to log successful registration
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e.Message);
+                    Console.WriteLine("[Audit] Error: " + e.Message);
                 }
 
-                Program.proxyReplication.SaveDataForUser(u);
-                Program.proxyReplication.SaveUserKey(secretKey, username);
+                try
+                {
+                    Program.proxyReplication.SaveDataForUser(u);    //Try to replicate new user info
+                    Program.proxyReplication.SaveUserKey(secretKey, username);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("[Replicator] Error: " + e.Message);
+                }
 
-                return encrypted;
+                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Registration failed!" + e.StackTrace);
-                //audit za registraciju failed
+                encrypted = e.Message;
                 try
                 {
-                    Audit.RegistrationCertFailure(username, e.StackTrace);
+                    Audit.RegistrationCertFailure(username, e.StackTrace); //Try to log failed registration
                 }
-                catch (Exception ee)
+                catch (Exception auditEx)
                 {
-                    Console.WriteLine(ee.Message);
+                    Console.WriteLine(auditEx.Message);
                 }
-                return null;
+                return false;
             }
         }
 
-        public byte[] Deposit(byte[] encryptedMessage)
+        public bool Deposit(byte[] encryptedMessage, out byte[] response)
         {
-            string srvCertCN = Formatter.ParseName(WindowsIdentity.GetCurrent().Name) + "_sign";
-            X509Certificate2 bankCertSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, srvCertCN);
-
             string clientName = Formatter.ParseName(ServiceSecurityContext.Current.PrimaryIdentity.Name);
-            string clientNameSign = clientName + "_sign";
-            X509Certificate2 certificate = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople,
-                StoreLocation.LocalMachine, clientNameSign);
-
-            List<User> users = JSONReader.ReadUsers();
-            User user = null;
-
-            foreach (User u in users)
+            try
             {
-                if (u.Username == clientName)
+                string bankCertCN = Formatter.ParseName(WindowsIdentity.GetCurrent().Name) + "_sign";
+                X509Certificate2 bankCertSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, bankCertCN);
+
+                string clientNameSign = clientName + "_sign";
+                X509Certificate2 certificate = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, clientNameSign);
+
+                if (certificate == null)
+                    throw new Exception("Could not find client sign certificate");
+
+                List<User> users = JSONReader.ReadUsers();
+                User user = users.Find(u => u.Username == clientName);
+                if (user == null)
+                    throw new Exception("Client not found in database");
+
+                string secretKey = SecretKey.LoadKey(clientName);
+                if (secretKey == null)
+                    throw new Exception("Clients secret key could not be loaded");
+
+                byte[] decrypted = _3DES_Symm_Algorithm.Decrypt(encryptedMessage, secretKey);
+                byte[] signature = new byte[256];
+                byte[] messageBytes = new byte[decrypted.Length - 256];
+
+                Buffer.BlockCopy(decrypted, 0, signature, 0, 256);  //Get decrypted signature
+                Buffer.BlockCopy(decrypted, 256, messageBytes, 0, decrypted.Length - 256); //Get the rest of the message
+
+                string message = Encoding.UTF8.GetString(messageBytes); //Get Message 
+
+                string bankResponse = "";
+
+                if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, signature, certificate))
                 {
-                    user = u;
-                    break;
-                }
-            }
+                    Console.WriteLine("Sign is valid");
 
-            string secretKey = SecretKey.LoadKey(clientName);
-            byte[] decrypted = _3DES_Symm_Algorithm.Decrypt(encryptedMessage, secretKey);
+                    string amount = message.Split('_')[0];
+                    string pin = message.Split('_')[1];
 
-            byte[] signature = new byte[256];
-            byte[] messageBytes = new byte[decrypted.Length - 256];
+                    byte[] pinBytes = Encoding.UTF8.GetBytes(pin);
+                    SHA256Managed sha256 = new SHA256Managed();
+                    byte[] pinHash = sha256.ComputeHash(pinBytes);
 
-            Buffer.BlockCopy(decrypted, 0, signature, 0, 256);
-            Buffer.BlockCopy(decrypted, 256, messageBytes, 0, decrypted.Length - 256);
-
-            string message = Encoding.UTF8.GetString(messageBytes);
-
-            string bankResponse = "";
-
-            /// Verify signature using SHA256 hash algorithm
-            if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, signature, certificate))
-            {
-                Console.WriteLine("Sign is valid");
-
-                string amount = message.Split('_')[0];
-                string pin = message.Split('_')[1];
-
-                byte[] pinBytes = Encoding.UTF8.GetBytes(pin);
-                SHA256Managed sha256 = new SHA256Managed();
-                byte[] pinHash = sha256.ComputeHash(pinBytes);
-
-                if (user.Pin == Encoding.UTF8.GetString(pinHash))
-                {
-                    user.Amount += Double.Parse(amount);
-                    JSONReader.SaveUser(user);
-                    Program.proxyReplication.SaveDataForUser(user);
-                    Console.WriteLine($"User {clientName} successfully deposited {amount}.");
-                    bankResponse = $"You successfully deposited {amount}.";
-
-                    //audit za uplatu success
-                    try
+                    if (user.Pin == Encoding.UTF8.GetString(pinHash))
                     {
-                        Audit.PaymentSuccess(clientName, amount.ToString());
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e.Message);
-                    }
-                }
-                else
-                {
-                    Console.WriteLine($"User {clientName} failed to deposit {amount}.");
-                    bankResponse = "Failed to deposit money.";
-
-                    //audit za uplatu failed
-                    try
-                    {
-                        Audit.PaymentFailure(clientName, "Failed to deposit money, wrong pin");
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e.Message);
-                    }
-                }
-            }
-            else
-            {
-                //vratiti poruku da nije moguce uraditi transakciju jer sertifikat nije validan
-                Console.WriteLine("Sign is invalid");
-                bankResponse = $"Sign is invalid. User {clientName} can't deposit money.";
-
-                //audit za uplatu failed
-                try
-                {
-                    Audit.PaymentFailure(clientName, "Failed to deposit money, sign is invalid");
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.Message);
-                }
-            }
-
-            signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
-
-            byte[] bankResponseBytes = Encoding.UTF8.GetBytes(bankResponse);
-
-            byte[] responseMessage = new byte[256 + bankResponseBytes.Length];
-
-            Buffer.BlockCopy(signature, 0, responseMessage, 0, 256);
-            Buffer.BlockCopy(bankResponseBytes, 0, responseMessage, 256, bankResponseBytes.Length);
-
-            byte[] encryptedResponse = _3DES_Symm_Algorithm.Encrypt(responseMessage, secretKey);
-
-            return encryptedResponse;
-        }
-
-        public byte[] Withdraw(byte[] encryptedMessage)
-        {
-            string srvCertCN = Formatter.ParseName(WindowsIdentity.GetCurrent().Name) + "_sign";
-            X509Certificate2 bankCertSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, srvCertCN);
-
-            string clientName = Formatter.ParseName(ServiceSecurityContext.Current.PrimaryIdentity.Name);
-            string clientNameSign = clientName + "_sign";
-            X509Certificate2 certificate = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople,
-                StoreLocation.LocalMachine, clientNameSign);
-
-            List<User> users = JSONReader.ReadUsers();
-            User user = null;
-            foreach (User u in users)
-            {
-                if (u.Username == clientName)
-                {
-                    user = u;
-                    break;
-                }
-            }
-
-            string secretKey = SecretKey.LoadKey(clientName);
-            byte[] decrypted = _3DES_Symm_Algorithm.Decrypt(encryptedMessage, secretKey);
-
-            byte[] signature = new byte[256];
-            byte[] messageBytes = new byte[decrypted.Length - 256];
-            Buffer.BlockCopy(decrypted, 0, signature, 0, 256);
-            Buffer.BlockCopy(decrypted, 256, messageBytes, 0, decrypted.Length - 256);
-
-            string message = Encoding.UTF8.GetString(messageBytes);
-
-            string bankResponse = "";
-
-            /// Verify signature using SHA1 hash algorithm
-            if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, signature, certificate))
-            {
-                Console.WriteLine("Sign is valid");
-
-                string amount = message.Split('_')[0];
-                string pin = message.Split('_')[1];
-
-                byte[] pinBytes = Encoding.UTF8.GetBytes(pin);
-                SHA256Managed sha256 = new SHA256Managed();
-                byte[] pinHash = sha256.ComputeHash(pinBytes);
-
-                if (user.Pin == Encoding.UTF8.GetString(pinHash))
-                {
-                    if (user.Amount > Double.Parse(amount))
-                    {
-                        user.Amount -= Double.Parse(amount);
-
+                        user.Amount += Double.Parse(amount);
                         JSONReader.SaveUser(user);
                         Program.proxyReplication.SaveDataForUser(user);
-                        Console.WriteLine($"User {clientName} successfully withdrew {amount}.");
-                        bankResponse = $"You successfully withdrew {amount}.";
-                        
-                        //audit za isplatu success
+                        Console.WriteLine($"User {clientName} successfully deposited {amount}.");
+                        bankResponse = $"You successfully deposited {amount}.";
+
+                        try
+                        {
+                            Audit.PaymentSuccess(clientName, amount.ToString()); //Try to log successful payment
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e.Message);
+                        }
                     }
                     else
-                        bankResponse = $"You dont have enough money on your account.";
-                    try
                     {
-                        Audit.PayoutSuccess(clientName, amount.ToString());
-                        Task.Run(() => CheckLogs(clientName));
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e.Message);
+                        Console.WriteLine($"User {clientName} failed to deposit {amount}.");
+                        bankResponse = "Failed to deposit money, incorrect pin.";
+                        throw new Exception(bankResponse);
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"User {clientName} failed to withdraw {amount}.");
-                    bankResponse = "Failed to withdraw money.";
-
-                    //audit za isplatu failed
-                    try
-                    {
-                        Audit.PayoutFailure(clientName, "Failed to withdraw money, wrong pin");
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e.Message);
-                    }
+                    Console.WriteLine("Sign is invalid");
+                    bankResponse = "Failed to deposit money, certificate sign is invalid.";
+                    throw new Exception(bankResponse);
                 }
-            }
-            else
-            {
-                Console.WriteLine("Sign is invalid");
-                bankResponse = $"Sign is invalid. User {clientName} can't withdraw money";
 
-                //audit za uplatu failed
+                signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
+
+                byte[] bankResponseBytes = Encoding.UTF8.GetBytes(bankResponse);
+
+                byte[] responseMessage = new byte[256 + bankResponseBytes.Length];
+
+                Buffer.BlockCopy(signature, 0, responseMessage, 0, 256);
+                Buffer.BlockCopy(bankResponseBytes, 0, responseMessage, 256, bankResponseBytes.Length);
+
+                response = _3DES_Symm_Algorithm.Encrypt(responseMessage, secretKey);
+                return true;
+            }
+            catch (Exception e)
+            {
                 try
                 {
-                    Audit.PayoutFailure(clientName, "Failed to withdraw money, sign is invalid");
+                    Audit.PaymentFailure(clientName, e.Message); //Try to log failed payment
                 }
-                catch (Exception e)
+                catch (Exception auditEx)
                 {
-                    Console.WriteLine(e.Message);
+                    Console.WriteLine(auditEx.Message);
                 }
+                response = Encoding.UTF8.GetBytes(e.Message);
+                return false;
             }
-
-            signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
-
-            byte[] bankResponseBytes = Encoding.UTF8.GetBytes(bankResponse);
-            byte[] responseMessage = new byte[256 + bankResponseBytes.Length];
-            Buffer.BlockCopy(signature, 0, responseMessage, 0, 256);
-            Buffer.BlockCopy(bankResponseBytes, 0, responseMessage, 256, bankResponseBytes.Length);
-
-            byte[] encryptedResponse = _3DES_Symm_Algorithm.Encrypt(responseMessage, secretKey);
-
-            return encryptedResponse;
         }
 
-        public byte[] ChangePin(byte[] encryptedMessage)
+        public bool Withdraw(byte[] encryptedMessage, out byte[] response)
         {
-            string srvCertCN = Formatter.ParseName(WindowsIdentity.GetCurrent().Name) + "_sign";
-            X509Certificate2 bankCertSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, srvCertCN);
-
             string clientName = Formatter.ParseName(ServiceSecurityContext.Current.PrimaryIdentity.Name);
-            string clientNameSign = clientName + "_sign";
-            X509Certificate2 certificate = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople,
-                StoreLocation.LocalMachine, clientNameSign);
-
-            List<User> users = JSONReader.ReadUsers();
-            User user = null;
-            foreach (User u in users)
+            try
             {
-                if (u.Username == clientName)
+                string srvCertCN = Formatter.ParseName(WindowsIdentity.GetCurrent().Name) + "_sign";
+                X509Certificate2 bankCertSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, srvCertCN);
+
+                string clientNameSign = clientName + "_sign";
+                X509Certificate2 certificate = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, clientNameSign);
+
+                if (certificate == null)
+                    throw new Exception("Could not find client sign certificate");
+
+                List<User> users = JSONReader.ReadUsers();
+                User user = users.Find(u => u.Username == clientName);
+                if (user == null)
+                    throw new Exception("Client not found in database");
+
+                string secretKey = SecretKey.LoadKey(clientName);
+                if (secretKey == null)
+                    throw new Exception("Clients secret key could not be loaded");
+
+                byte[] decrypted = _3DES_Symm_Algorithm.Decrypt(encryptedMessage, secretKey);
+                byte[] signature = new byte[256];
+                byte[] messageBytes = new byte[decrypted.Length - 256];
+
+                Buffer.BlockCopy(decrypted, 0, signature, 0, 256); //Get decrypted signature
+                Buffer.BlockCopy(decrypted, 256, messageBytes, 0, decrypted.Length - 256); //Get the rest of the message
+
+                string message = Encoding.UTF8.GetString(messageBytes); //Get Message 
+
+                string bankResponse = "";
+
+                /// Verify signature using SHA1 hash algorithm
+                if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, signature, certificate))
                 {
-                    user = u;
-                    break;
-                }
-            }
+                    Console.WriteLine("Sign is valid");
 
-            string secretKey = SecretKey.LoadKey(clientName);
-            byte[] decrypted = _3DES_Symm_Algorithm.Decrypt(encryptedMessage, secretKey);
+                    string amount = message.Split('_')[0];
+                    string pin = message.Split('_')[1];
 
-            byte[] signature = new byte[256];
-            byte[] messageBytes = new byte[decrypted.Length - 256];
-            Buffer.BlockCopy(decrypted, 0, signature, 0, 256);
-            Buffer.BlockCopy(decrypted, 256, messageBytes, 0, decrypted.Length - 256);
+                    byte[] pinBytes = Encoding.UTF8.GetBytes(pin);
+                    SHA256Managed sha256 = new SHA256Managed();
+                    byte[] pinHash = sha256.ComputeHash(pinBytes);
 
-            string message = Encoding.UTF8.GetString(messageBytes);
-
-            string bankResponse = "";
-
-            /// Verify signature using SHA1 hash algorithm
-            if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, signature, certificate))
-            {
-                Console.WriteLine("Sign is valid");
-
-                string newPin = message.Split('_')[0];
-                string pin = message.Split('_')[1];
-
-                byte[] pinBytes = Encoding.UTF8.GetBytes(pin);
-                SHA256Managed sha256 = new SHA256Managed();
-                byte[] pinHash = sha256.ComputeHash(pinBytes);
-
-                if (user.Pin == Encoding.UTF8.GetString(pinHash))
-                {
-                    byte[] newPinBytes = Encoding.UTF8.GetBytes(newPin);
-                    byte[] newPinHash = sha256.ComputeHash(newPinBytes);
-                    user.Pin = Encoding.UTF8.GetString(newPinHash);
-                    JSONReader.SaveUser(user);
-                    Program.proxyReplication.SaveDataForUser(user);
-                    Console.WriteLine($"User {clientName} successfully changed pin.");
-                    bankResponse = $"You successfully changed pin please do not forget it.";
-
-                    //audit za promenu pina success
-                    try
+                    if (user.Pin == Encoding.UTF8.GetString(pinHash))
                     {
-                        Audit.ChangePinSuccess(clientName);
+                        if (user.Amount > Double.Parse(amount))
+                        {
+                            user.Amount -= Double.Parse(amount);
+
+                            JSONReader.SaveUser(user);
+                            Program.proxyReplication.SaveDataForUser(user);
+                            Console.WriteLine($"User {clientName} successfully withdrew {amount}.");
+                            bankResponse = $"You successfully withdrew {amount}.";
+                        }
+                        else
+                        {
+                            Console.WriteLine($"User {clientName} failed to withdraw {amount}.\nReason: not enough money.");
+                            bankResponse = "You dont have enough money on your account.";
+                            throw new Exception(bankResponse);
+                        }
+
+                        try
+                        {
+                            Audit.PayoutSuccess(clientName, amount.ToString());  //Try to log successful payout
+                            Task.Run(() => CheckLogs(clientName));
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e.Message);
+                        }
                     }
-                    catch (Exception e)
+                    else
                     {
-                        Console.WriteLine(e.Message);
+                        Console.WriteLine($"User {clientName} failed to withdraw {amount}.");
+                        bankResponse = "Failed to withdraw money, incorrect pin.";
+                        throw new Exception(bankResponse);
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"User {clientName} failed to change pin.");
-                    bankResponse = "Failed to change pin.";
-
-                    //audit za promenu pina failed
-                    try
-                    {
-                        Audit.ChangePinFailure(clientName, "Failed to change pin, old pin is wrong");
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e.Message);
-                    }
+                    Console.WriteLine("Sign is invalid");
+                    bankResponse = "Failed to withdraw money, certificate sign is invalid.";
+                    throw new Exception(bankResponse);
                 }
-            }
-            else
-            {
-                Console.WriteLine("Sign is invalid");
-                bankResponse = $"Sign is invalid. User {clientName} can't change pin";
 
-                //audit za promenu pina failed
+                signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
+
+                byte[] bankResponseBytes = Encoding.UTF8.GetBytes(bankResponse);
+                byte[] responseMessage = new byte[256 + bankResponseBytes.Length];
+                Buffer.BlockCopy(signature, 0, responseMessage, 0, 256);
+                Buffer.BlockCopy(bankResponseBytes, 0, responseMessage, 256, bankResponseBytes.Length);
+
+                response = _3DES_Symm_Algorithm.Encrypt(responseMessage, secretKey);
+                return true;
+            }
+            catch (Exception e)
+            {
                 try
                 {
-                    Audit.ChangePinFailure(clientName, "Failed to change pin, sign is invalid");
+                    Audit.PayoutFailure(clientName, e.Message); //Try to log failed payout
                 }
-                catch (Exception e)
+                catch (Exception auditEx)
                 {
-                    Console.WriteLine(e.Message);
+                    Console.WriteLine(auditEx.Message);
                 }
+                response = Encoding.UTF8.GetBytes(e.Message);
+                return false;
             }
+        }
 
-            signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
+        public bool ChangePin(byte[] encryptedMessage, out byte[] response)
+        {
+            string clientName = Formatter.ParseName(ServiceSecurityContext.Current.PrimaryIdentity.Name);
+            try
+            {
+                string srvCertCN = Formatter.ParseName(WindowsIdentity.GetCurrent().Name) + "_sign";
+                X509Certificate2 bankCertSign = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, srvCertCN);
 
-            byte[] bankResponseBytes = Encoding.UTF8.GetBytes(bankResponse);
-            byte[] responseMessage = new byte[256 + bankResponseBytes.Length];
-            Buffer.BlockCopy(signature, 0, responseMessage, 0, 256);
-            Buffer.BlockCopy(bankResponseBytes, 0, responseMessage, 256, bankResponseBytes.Length);
+                string clientNameSign = clientName + "_sign";
+                X509Certificate2 certificate = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople,
+                    StoreLocation.LocalMachine, clientNameSign);
 
-            byte[] encryptedResponse = _3DES_Symm_Algorithm.Encrypt(responseMessage, secretKey);
+                if (certificate == null)
+                    throw new Exception("Could not find client sign certificate");
 
-            return encryptedResponse;
+                List<User> users = JSONReader.ReadUsers();
+                User user = users.Find(u => u.Username == clientName);
+                if (user == null)
+                    throw new Exception("Client not found in database");
+
+                string secretKey = SecretKey.LoadKey(clientName);
+                if (secretKey == null)
+                    throw new Exception("Clients secret key could not be loaded");
+
+                byte[] decrypted = _3DES_Symm_Algorithm.Decrypt(encryptedMessage, secretKey);
+                byte[] signature = new byte[256];
+                byte[] messageBytes = new byte[decrypted.Length - 256];
+
+                Buffer.BlockCopy(decrypted, 0, signature, 0, 256);
+                Buffer.BlockCopy(decrypted, 256, messageBytes, 0, decrypted.Length - 256);
+
+                string message = Encoding.UTF8.GetString(messageBytes);
+                string bankResponse = "";
+
+                if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, signature, certificate))
+                {
+                    Console.WriteLine("Sign is valid");
+
+                    string newPin = message.Split('_')[0];
+                    string pin = message.Split('_')[1];
+
+                    byte[] pinBytes = Encoding.UTF8.GetBytes(pin);
+                    SHA256Managed sha256 = new SHA256Managed();
+                    byte[] pinHash = sha256.ComputeHash(pinBytes);
+
+                    if (user.Pin == Encoding.UTF8.GetString(pinHash))
+                    {
+                        byte[] newPinBytes = Encoding.UTF8.GetBytes(newPin);
+                        byte[] newPinHash = sha256.ComputeHash(newPinBytes);
+                        user.Pin = Encoding.UTF8.GetString(newPinHash);
+                        JSONReader.SaveUser(user);
+                        Program.proxyReplication.SaveDataForUser(user);
+                        Console.WriteLine($"User {clientName} successfully changed pin.");
+                        bankResponse = $"You successfully changed pin please do not forget it.";
+
+                        try
+                        {
+                            Audit.ChangePinSuccess(clientName); //Try to log successful pin reset
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e.Message);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"User {clientName} failed to change pin.");
+                        bankResponse = "Failed to change pin, old pin is wrong.";
+                        throw new Exception(bankResponse);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Sign is invalid");
+                    bankResponse = "Failed to change pin, sign is invalid";
+                    throw new Exception(bankResponse);
+                }
+
+                signature = DigitalSignature.Create(bankResponse, Manager.HashAlgorithm.SHA1, bankCertSign);
+
+                byte[] bankResponseBytes = Encoding.UTF8.GetBytes(bankResponse);
+                byte[] responseMessage = new byte[256 + bankResponseBytes.Length];
+                Buffer.BlockCopy(signature, 0, responseMessage, 0, 256);
+                Buffer.BlockCopy(bankResponseBytes, 0, responseMessage, 256, bankResponseBytes.Length);
+
+                response = _3DES_Symm_Algorithm.Encrypt(responseMessage, secretKey);
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                try
+                {
+                    Audit.ChangePinFailure(clientName, e.Message); //Try to log failed pin reset
+                }
+                catch (Exception auditEx)
+                {
+                    Console.WriteLine(auditEx.Message);
+                }
+                response = Encoding.UTF8.GetBytes(e.Message);
+                return false;
+            }
         }
 
         public string RenewCertificate()
         {
             string username = Formatter.ParseName(ServiceSecurityContext.Current.PrimaryIdentity.Name);
-
-            List<User> users = JSONReader.ReadUsers();
-            User user = null;
-
-            foreach (User u in users)
-            {
-                if (u.Username == username)
-                {
-                    user = u;
-                    break;
-                }
-            }
-
             try
             {
+
+                List<User> users = JSONReader.ReadUsers();
+                User user = users.Find(u => u.Username == username);
+                if (user == null)
+                    throw new Exception("Client not found in database");
+               
                 File.Delete(username + ".pvk");
                 File.Delete(username + "_sign.pvk");
                 File.Delete(username + ".pfx");
@@ -483,7 +457,7 @@ namespace Bank
 
                 try
                 {
-                    Audit.RevocationCertSuccess(username);
+                    Audit.RevocationCertSuccess(username); //Try to log certificate revocation
                 }
                 catch (Exception e)
                 {
@@ -509,7 +483,7 @@ namespace Bank
 
                 try
                 {
-                    Audit.RenewalCertSuccess(username);
+                    Audit.RenewalCertSuccess(username); //Try to log certificate revocation
                 }
                 catch (Exception e)
                 {
@@ -533,7 +507,14 @@ namespace Bank
             catch (Exception e)
             {
                 Console.WriteLine("Certificate renew failed!" + e.StackTrace);
-                Audit.RenewalCertFailure(username,e.Message);
+                try
+                {
+                    Audit.RenewalCertFailure(username,e.Message); //Try to log certificate renewal failure
+                }
+                catch (Exception auditEx)
+                {
+                    Console.WriteLine(auditEx.Message);
+                }
                 return null;
             }
         }

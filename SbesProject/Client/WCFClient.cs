@@ -28,52 +28,45 @@ namespace Client
                 this.Credentials.ServiceCertificate.Authentication.CustomCertificateValidator = new ClientCertValidator();
                 this.Credentials.ServiceCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
                 this.Credentials.ClientCertificate.Certificate = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, cltCertCN);
-
             }
             factory = this.CreateChannel();
-            
-            
         }
 
-        public void TestCommunication()
+        public bool Registration(out string message)
         {
             try
             {
-                factory.TestCommunication();
+                bool registration= factory.Registration(out message);
+
+                if (!registration)
+                {
+                    throw new Exception(message);
+                }
+                else
+                {
+                    Console.WriteLine("Certificate installation...");
+                    Console.ReadLine();
+
+                    string cltCertCN = Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
+                    X509Certificate2 cert = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, cltCertCN);
+                    string decrypted = Manager.RSA.Decrypt(message, cert.GetRSAPrivateKey().ToXmlString(true));
+
+                    string pin = decrypted.Substring(decrypted.Length - 4, 4);
+                    string secretKey = decrypted.Substring(0, decrypted.Length - 4);
+                    SecretKey.StoreKey(secretKey, cltCertCN);
+
+                    Console.WriteLine("Successful registration! Your PIN code is: " + pin);
+
+                    message = decrypted;
+                    return true;
+                }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Console.WriteLine("[TestCommunication] ERROR = {0}", e.Message);
+                Console.WriteLine("[Registration] Error: "+ex.Message);
+                message=ex.Message;
+                return false;
             }
-        }
-
-        public string Registration()
-        {
-            string message = factory.Registration();
-
-            if (message == null)
-            {
-                Console.WriteLine("Registration failed. Try again!");
-            }
-            else
-            {
-                Console.WriteLine("Certificate installation...");
-                Console.ReadLine();
-
-                string cltCertCN = Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
-                X509Certificate2 cert = CertManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, cltCertCN);
-                string decrypted = Manager.RSA.Decrypt(message, cert.GetRSAPrivateKey().ToXmlString(true));
-
-                string pin = decrypted.Substring(decrypted.Length - 4, 4);
-                string secretKey = decrypted.Substring(0, decrypted.Length - 4);
-                SecretKey.StoreKey(secretKey, cltCertCN);
-                
-                Console.WriteLine("Successful registration! Your PIN code is: " + pin);
-
-                return pin;
-            }
-
-            return message;
         }
 
         public bool CheckIfRegistered()
@@ -81,11 +74,12 @@ namespace Client
             return factory.CheckIfRegistered();
         }
 
-        public byte[] Deposit(byte[] encryptedMessage)
+        public bool Deposit(byte[] encryptedMessage,out byte[] response)
         {
             try
             {
-                byte[] response = factory.Deposit(encryptedMessage);
+                if (!factory.Deposit(encryptedMessage, out response))
+                    throw new Exception(response.ToString());
 
                 string clientName = Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
                 X509Certificate2 cert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, "bank_sign");
@@ -104,26 +98,25 @@ namespace Client
                 if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, signature, cert))
                 {
                     Console.WriteLine(message);
-                    return messageBytes;
+                    return true;
                 }
                 else
-                {
-                    Console.WriteLine($"Bank sign is invalid.");
-                    return null;
-                }
+                    throw new Exception("Bank sign is invalid");
             }
             catch (Exception e)
             {
                 Console.WriteLine("[Deposit] ERROR = {0}", e.Message);
-                return null;
+                response =Encoding.UTF8.GetBytes(e.Message);
+                return false;
             }
         }
 
-        public byte[] Withdraw(byte[] encryptedMessage)
+        public bool Withdraw(byte[] encryptedMessage,out byte[] response)
         {
             try
             {
-                byte[] response = factory.Withdraw(encryptedMessage);
+                if (!factory.Withdraw(encryptedMessage, out response))
+                    throw new Exception(response.ToString());
 
                 string clientName = Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
                 X509Certificate2 cert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, "bank_sign");
@@ -140,26 +133,25 @@ namespace Client
                 if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, signature, cert))
                 {
                     Console.WriteLine(message);
-                    return messageBytes;
+                    return true;
                 }
                 else
-                {
-                    Console.WriteLine($"Bank sign is invalid.");
-                    return null;
-                }
+                    throw new Exception("Bank sign is invalid");
             }
             catch (Exception e)
             {
                 Console.WriteLine("[Withdraw] ERROR = {0}", e.Message);
-                return null;
+                response = Encoding.UTF8.GetBytes(e.Message);
+                return false;
             }
         }
 
-        public byte[] ChangePin(byte[] encryptedMessage)
+        public bool ChangePin(byte[] encryptedMessage,out byte[] response)
         {
             try
             {
-                byte[] response = factory.ChangePin(encryptedMessage);
+                if (!factory.ChangePin(encryptedMessage, out response))
+                    throw new Exception(response.ToString());
 
                 string clientName = Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
                 X509Certificate2 cert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, "bank_sign");
@@ -176,18 +168,16 @@ namespace Client
                 if (DigitalSignature.Verify(message, Manager.HashAlgorithm.SHA1, signature, cert))
                 {
                     Console.WriteLine(message);
-                    return messageBytes;
+                    return true;
                 }
                 else
-                {
-                    Console.WriteLine($"Bank sign is invalid.");
-                    return null;
-                }
+                    throw new Exception("Bank sign is invalid");
             }
             catch (Exception e)
             {
                 Console.WriteLine("[ChangePin] ERROR = {0}", e.Message);
-                return null;
+                response = Encoding.UTF8.GetBytes(e.Message);
+                return false;
             }
         }
 

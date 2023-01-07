@@ -22,7 +22,6 @@ namespace Client
 
         static void Main(string[] args)
         {
-            
             NetTcpBinding binding = new NetTcpBinding();
             string address = "net.tcp://localhost:9999/BankService";
             
@@ -42,20 +41,16 @@ namespace Client
                 EndpointAddress endpointAddressTransaction = new EndpointAddress(new Uri(addressTransaction), new X509CertificateEndpointIdentity(srvCert));
                 CertificateProxy = new WCFClient(bindingTransaction, endpointAddressTransaction, false);
 
-                CertificateProxy.TestCommunication(); //provera da li je uspesna autentifikacija preko sertifikata
-
                 UserInterface(CertificateProxy, proxyWcf);
-
             }
             else
             {
-
                 Console.WriteLine("Do you want to registrate? y/n");
                 string answer = Console.ReadLine();
-
+                string message;
                 if (answer.ToLower() == "y")
                 {
-                    if (proxyWcf.Registration() == null)
+                    if (!proxyWcf.Registration(out message))
                     {
                         return;
                     }
@@ -63,8 +58,6 @@ namespace Client
                     {
                         EndpointAddress endpointAddressTransaction = new EndpointAddress(new Uri(addressTransaction), new X509CertificateEndpointIdentity(srvCert));
                         CertificateProxy = new WCFClient(bindingTransaction, endpointAddressTransaction, false);
-
-                        CertificateProxy.TestCommunication(); //provera da li je uspesna autentifikacija preko sertifikata
 
                         UserInterface(CertificateProxy, proxyWcf);
                     }
@@ -80,7 +73,6 @@ namespace Client
                     Console.WriteLine("Invalid input!");
                 }
             }
-
             Console.WriteLine("Connection terminated pres any key to exit");
             Console.ReadLine();
         }
@@ -99,8 +91,7 @@ namespace Client
                 Console.WriteLine("\t5. The end");
                 Console.Write("Your option: ");
                 option = Console.ReadLine();
-
-                //switch
+                
                 switch (option)
                 {
                     case "1":
@@ -128,8 +119,8 @@ namespace Client
                             string secretKey = SecretKey.LoadKey(username);
 
                             byte[] encryptedMessage = _3DES_Symm_Algorithm.Encrypt(message, secretKey);
-
-                            CertificateProxy.Deposit(encryptedMessage);
+                            byte[] response;
+                            CertificateProxy.Deposit(encryptedMessage,out response);
                             
                         }
                         break;
@@ -155,9 +146,9 @@ namespace Client
                             string username = Manager.Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
                             string secretKey= SecretKey.LoadKey(username);
 
-                            byte[] encryptedMessage = _3DES_Symm_Algorithm.Encrypt(message, secretKey);                            
-
-                            CertificateProxy.Withdraw(encryptedMessage);
+                            byte[] encryptedMessage = _3DES_Symm_Algorithm.Encrypt(message, secretKey);
+                            byte[] response;
+                            CertificateProxy.Withdraw(encryptedMessage,out response);
                         }
                         break;
 
@@ -183,8 +174,8 @@ namespace Client
                             string secretKey = SecretKey.LoadKey(username);
 
                             byte[] encryptedMessage = _3DES_Symm_Algorithm.Encrypt(message, secretKey);
-
-                            CertificateProxy.ChangePin(encryptedMessage);
+                            byte[] response;
+                            CertificateProxy.ChangePin(encryptedMessage,out response);
                         }
                         break;
 

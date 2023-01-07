@@ -11,22 +11,19 @@ namespace BankContracts
     public interface IBankService
     {
         [OperationContract]
-        string Registration();
+        bool Registration(out string encrypted);
 
         [OperationContract]
         bool CheckIfRegistered();
 
         [OperationContract]
-        void TestCommunication();
+        bool Deposit(byte[] encryptedMessage,out byte[] response);
 
         [OperationContract]
-        byte[] Deposit(byte[] encryptedMessage);
+        bool Withdraw(byte[] encryptedMessage,out byte[] response);
 
         [OperationContract]
-        byte[] Withdraw(byte[] encryptedMessage);
-
-        [OperationContract]
-        byte[] ChangePin(byte[] encryptedMessage);
+        bool ChangePin(byte[] encryptedMessage, out byte[] response);
 
         [OperationContract]
         string RenewCertificate();
