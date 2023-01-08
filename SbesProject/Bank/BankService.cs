@@ -103,7 +103,7 @@ namespace Bank
             }
             catch (Exception e)
             {
-                Console.WriteLine("Registration failed!" + e.StackTrace);
+                Console.WriteLine("Registration failed: "+e.Message+"\n" + e.StackTrace);
                 encrypted = e.Message;
                 try
                 {
@@ -207,6 +207,7 @@ namespace Bank
             }
             catch (Exception e)
             {
+                Console.WriteLine("[Deposit] ERROR = {0}", e.Message);
                 try
                 {
                     Audit.PaymentFailure(clientName, e.Message); //Try to log failed payment
@@ -320,6 +321,7 @@ namespace Bank
             }
             catch (Exception e)
             {
+                Console.WriteLine("[Withdraw] ERROR = {0}", e.Message);
                 try
                 {
                     Audit.PayoutFailure(clientName, e.Message); //Try to log failed payout
@@ -424,6 +426,7 @@ namespace Bank
             }
             catch (Exception e)
             {
+                Console.WriteLine("[PinReset] ERROR = {0}", e.Message);
                 try
                 {
                     Audit.ChangePinFailure(clientName, e.Message); //Try to log failed pin reset
@@ -506,7 +509,7 @@ namespace Bank
             }
             catch (Exception e)
             {
-                Console.WriteLine("Certificate renew failed!" + e.StackTrace);
+                Console.WriteLine("Certificate renew failed: "+e.Message+"\n" + e.StackTrace);
                 try
                 {
                     Audit.RenewalCertFailure(username,e.Message); //Try to log certificate renewal failure
@@ -559,7 +562,14 @@ namespace Bank
                         logovi.Add(listEntry[i].Message);
                     }
 
-                    Program.proxyAudit.AccessLog("banka", clientName, dt, logovi);
+                    try
+                    {
+                        Program.proxyAudit.AccessLog("banka", clientName, dt, logovi);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                    }
                 }
             }
         }

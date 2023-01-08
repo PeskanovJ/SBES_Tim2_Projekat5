@@ -64,6 +64,8 @@ namespace Client
             catch (Exception ex)
             {
                 Console.WriteLine("[Registration] Error: "+ex.Message);
+                Console.WriteLine("\n\n The connection with server is terminated. Press any key to exit the program");
+                Console.Read();
                 message=ex.Message;
                 return false;
             }
@@ -79,7 +81,7 @@ namespace Client
             try
             {
                 if (!factory.Deposit(encryptedMessage, out response))
-                    throw new Exception(response.ToString());
+                    throw new Exception(Encoding.UTF8.GetString(response));
 
                 string clientName = Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
                 X509Certificate2 cert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, "bank_sign");
@@ -116,7 +118,7 @@ namespace Client
             try
             {
                 if (!factory.Withdraw(encryptedMessage, out response))
-                    throw new Exception(response.ToString());
+                    throw new Exception(Encoding.UTF8.GetString(response));
 
                 string clientName = Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
                 X509Certificate2 cert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, "bank_sign");
@@ -151,7 +153,7 @@ namespace Client
             try
             {
                 if (!factory.ChangePin(encryptedMessage, out response))
-                    throw new Exception(response.ToString());
+                    throw new Exception(Encoding.UTF8.GetString(response));
 
                 string clientName = Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
                 X509Certificate2 cert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, "bank_sign");
