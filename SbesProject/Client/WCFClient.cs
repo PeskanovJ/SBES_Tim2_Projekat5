@@ -82,7 +82,14 @@ namespace Client
             {
                 if (!factory.Deposit(encryptedMessage, out response))
                     throw new Exception(Encoding.UTF8.GetString(response));
-
+                try
+                {
+                    Audit.RequestTransactionSuccess("Pin Reset");  //Try to log transaction success 
+                }
+                catch (Exception auditEx)
+                {
+                    Console.WriteLine(auditEx.Message);
+                }
                 string clientName = Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
                 X509Certificate2 cert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, "bank_sign");
                 string secretKey = SecretKey.LoadKey(clientName);
@@ -108,6 +115,14 @@ namespace Client
             catch (Exception e)
             {
                 Console.WriteLine("[Deposit] ERROR = {0}", e.Message);
+                try
+                {
+                    Audit.RequestTransactionFailure("Deposit", e.Message);  //Try to log transaction faliure 
+                }
+                catch (Exception auditEx)
+                {
+                    Console.WriteLine(auditEx.Message);
+                }
                 response =Encoding.UTF8.GetBytes(e.Message);
                 return false;
             }
@@ -119,7 +134,14 @@ namespace Client
             {
                 if (!factory.Withdraw(encryptedMessage, out response))
                     throw new Exception(Encoding.UTF8.GetString(response));
-
+                try
+                {
+                    Audit.RequestTransactionSuccess("Pin Reset");  //Try to log transaction success 
+                }
+                catch (Exception auditEx)
+                {
+                    Console.WriteLine(auditEx.Message);
+                }
                 string clientName = Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
                 X509Certificate2 cert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, "bank_sign");
                 string secretKey = SecretKey.LoadKey(clientName);
@@ -143,6 +165,14 @@ namespace Client
             catch (Exception e)
             {
                 Console.WriteLine("[Withdraw] ERROR = {0}", e.Message);
+                try
+                {
+                    Audit.RequestTransactionFailure("Withdraw", e.Message);  //Try to log transaction faliure 
+                }
+                catch (Exception auditEx)
+                {
+                    Console.WriteLine(auditEx.Message);
+                }
                 response = Encoding.UTF8.GetBytes(e.Message);
                 return false;
             }
@@ -154,6 +184,15 @@ namespace Client
             {
                 if (!factory.ChangePin(encryptedMessage, out response))
                     throw new Exception(Encoding.UTF8.GetString(response));
+
+                try
+                {
+                    Audit.RequestTransactionSuccess("Pin Reset");  //Try to log transaction success 
+                }
+                catch (Exception auditEx)
+                {
+                    Console.WriteLine(auditEx.Message);
+                }
 
                 string clientName = Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
                 X509Certificate2 cert = CertManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, "bank_sign");
@@ -178,6 +217,14 @@ namespace Client
             catch (Exception e)
             {
                 Console.WriteLine("[ChangePin] ERROR = {0}", e.Message);
+                try
+                {
+                    Audit.RequestTransactionFailure("Pin Reset",e.Message);  //Try to log transaction faliure 
+                }
+                catch (Exception auditEx)
+                {
+                    Console.WriteLine(auditEx.Message);
+                }
                 response = Encoding.UTF8.GetBytes(e.Message);
                 return false;
             }
