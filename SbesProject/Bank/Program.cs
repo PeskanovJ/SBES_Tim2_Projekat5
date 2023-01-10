@@ -25,6 +25,10 @@ namespace Bank
             binding.Security.Mode = SecurityMode.Transport;
             binding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
             binding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
+            binding.OpenTimeout = new TimeSpan(0, 10, 0);
+            binding.CloseTimeout = new TimeSpan(0, 10, 0);
+            binding.SendTimeout = new TimeSpan(0, 10, 0);
+            binding.ReceiveTimeout = new TimeSpan(0, 10, 0);
             ServiceHost host = new ServiceHost(typeof(BankService));
             host.AddServiceEndpoint(typeof(IBankService), binding, address);
 

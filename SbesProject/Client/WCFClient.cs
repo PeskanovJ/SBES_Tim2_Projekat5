@@ -84,7 +84,7 @@ namespace Client
                     throw new Exception(Encoding.UTF8.GetString(response));
                 try
                 {
-                    Audit.RequestTransactionSuccess("Pin Reset");  //Try to log transaction success 
+                    Audit.RequestTransactionSuccess("Deposit");  //Try to log transaction success 
                 }
                 catch (Exception auditEx)
                 {
@@ -136,7 +136,7 @@ namespace Client
                     throw new Exception(Encoding.UTF8.GetString(response));
                 try
                 {
-                    Audit.RequestTransactionSuccess("Pin Reset");  //Try to log transaction success 
+                    Audit.RequestTransactionSuccess("Withdraw");  //Try to log transaction success 
                 }
                 catch (Exception auditEx)
                 {
